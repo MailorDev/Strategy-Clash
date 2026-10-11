@@ -1,0 +1,1418 @@
+<!DOCTYPE html>
+<html lang="fr" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus Clash 4X - Campagne Étendue</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #020617;
+            color: #f8fafc;
+            user-select: none;
+            overflow: hidden;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+        }
+        canvas {
+            display: block;
+            touch-action: none;
+            width: 100%;
+            height: 100%;
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(99, 102, 241, 0.4);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(99, 102, 241, 0.8);
+        }
+        .glow-effect {
+            box-shadow: 0 0 25px -5px rgba(99, 102, 241, 0.4);
+        }
+    </style>
+</head>
+<body class="h-full flex flex-col relative overflow-hidden">
+
+    <!-- Menu de sélection de campagne complet -->
+    <div id="level-select-screen" class="absolute inset-0 z-50 bg-slate-950 flex flex-col p-4 sm:p-6 transition-all duration-300 overflow-hidden">
+        
+        <!-- En-tête Campagne -->
+        <header class="max-w-6xl w-full mx-auto flex flex-col sm:flex-row justify-between items-center mb-6 flex-shrink-0 gap-4">
+            <div class="flex items-center space-x-3 text-left">
+                <div class="w-12 h-12 rounded-2xl bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center text-2xl shadow-xl">
+                    <i class="fa-solid fa-map-location-dot"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl sm:text-3xl font-black text-white tracking-tight">Théâtres d'Opérations</h1>
+                    <p class="text-xs text-slate-400">12 Théâtres d'opérations stratégiques sur le continent Voronoi</p>
+                </div>
+            </div>
+
+            <!-- Stats Globale Campagne -->
+            <div class="flex items-center space-x-4 bg-slate-900/90 border border-slate-800 rounded-2xl px-4 py-2.5 shadow-xl text-xs">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-star text-amber-400 text-sm"></i>
+                    <span class="text-slate-300">Étoiles : <strong id="total-stars-count" class="text-white font-bold">0 / 36</strong></span>
+                </div>
+                <div class="w-px h-4 bg-slate-800"></div>
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-trophy text-indigo-400 text-sm"></i>
+                    <span class="text-slate-300">Secteurs : <strong id="campaign-progress-text" class="text-white font-bold">0 / 12</strong></span>
+                </div>
+                <button onclick="resetCampaignProgress()" class="text-slate-500 hover:text-rose-400 text-xs ml-2 transition" title="Réinitialiser">
+                    <i class="fa-solid fa-trash-can"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Filtres par Régions -->
+        <div class="max-w-6xl w-full mx-auto mb-4 flex items-center space-x-2 overflow-x-auto pb-2 flex-shrink-0">
+            <button onclick="filterRegion('all')" id="region-btn-all" class="region-filter-btn px-4 py-2 rounded-xl text-xs font-bold transition bg-indigo-600 text-white shadow-lg">
+                Toutes les Régions (12)
+            </button>
+            <button onclick="filterRegion('Archipel Vespéral')" id="region-btn-1" class="region-filter-btn px-4 py-2 rounded-xl text-xs font-bold transition bg-slate-900 text-slate-400 hover:bg-slate-800 border border-slate-800">
+                1. Archipel Vespéral
+            </button>
+            <button onclick="filterRegion('Plateau de Magma')" id="region-btn-2" class="region-filter-btn px-4 py-2 rounded-xl text-xs font-bold transition bg-slate-900 text-slate-400 hover:bg-slate-800 border border-slate-800">
+                2. Plateau de Magma
+            </button>
+            <button onclick="filterRegion('Toundra d\'Aethel')" id="region-btn-3" class="region-filter-btn px-4 py-2 rounded-xl text-xs font-bold transition bg-slate-900 text-slate-400 hover:bg-slate-800 border border-slate-800">
+                3. Toundra d'Aethel
+            </button>
+            <button onclick="filterRegion('Nébuleuse Centrale')" id="region-btn-4" class="region-filter-btn px-4 py-2 rounded-xl text-xs font-bold transition bg-slate-900 text-slate-400 hover:bg-slate-800 border border-slate-800">
+                4. Nébuleuse Centrale
+            </button>
+        </div>
+
+        <!-- Grille des Niveaux (Scrollable) -->
+        <div class="max-w-6xl w-full mx-auto flex-1 overflow-y-auto pr-1 mb-2">
+            <div id="levels-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-1">
+                <!-- Généré dynamiquement -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modale de Briefing avec Aperçu de Map Voronoi -->
+    <div id="briefing-modal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-xl w-full p-6 text-left shadow-2xl relative flex flex-col md:flex-row gap-6">
+            <button onclick="closeBriefingModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white text-base w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center z-10">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <!-- Previsualisation de la Map Voronoi -->
+            <div class="w-full md:w-5/12 flex flex-col items-center">
+                <div class="w-full h-44 bg-slate-950 rounded-2xl border border-slate-800 relative overflow-hidden shadow-inner flex items-center justify-center">
+                    <canvas id="previewCanvas" class="w-full h-full"></canvas>
+                    <span class="absolute bottom-2 right-2 text-[10px] bg-slate-900/80 text-slate-400 px-2 py-0.5 rounded border border-slate-800">Aperçu Topographique</span>
+                </div>
+                <div id="briefing-stars-display" class="flex items-center space-x-1 mt-3 text-amber-400 text-lg">
+                    <!-- Étoiles obtenues -->
+                </div>
+            </div>
+
+            <!-- Infos de Mission -->
+            <div class="w-full md:w-7/12 flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center space-x-2 mb-1">
+                        <span id="briefing-region-tag" class="text-[10px] font-bold text-indigo-400 uppercase tracking-wider">Archipel Vespéral</span>
+                        <span id="briefing-difficulty-tag" class="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded font-bold">Facile</span>
+                    </div>
+                    <h3 id="briefing-title" class="text-xl font-black text-white mb-2">Péninsule du Dragon</h3>
+                    <p id="briefing-description" class="text-xs text-slate-300 leading-relaxed mb-4 bg-slate-950/60 p-3 rounded-2xl border border-slate-800/80">
+                        Description tactique de la mission.
+                    </p>
+                </div>
+
+                <div class="space-y-3">
+                    <div class="bg-slate-950/80 rounded-2xl p-3 border border-slate-800/60 space-y-1.5 text-xs">
+                        <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Objectif Stratégique :</div>
+                        <div class="flex items-center space-x-2 text-emerald-300 font-semibold">
+                            <i class="fa-solid fa-bullseye text-emerald-400"></i>
+                            <span id="briefing-objective">Conquérir tous les territoires</span>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between text-xs text-slate-400 pt-1">
+                        <div><i class="fa-solid fa-shapes text-indigo-400 mr-1"></i> <span id="briefing-territories-count" class="text-white font-bold">8</span> Territoires</div>
+                        <div><i class="fa-solid fa-users text-rose-400 mr-1"></i> <span id="briefing-factions-count" class="text-white font-bold">1 Ennemi</span></div>
+                    </div>
+
+                    <div class="flex space-x-2 pt-2">
+                        <button onclick="closeBriefingModal()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs py-3 rounded-2xl transition">
+                            Retour
+                        </button>
+                        <button id="start-mission-btn" onclick="confirmStartMission()" class="flex-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs py-3 px-4 rounded-2xl transition shadow-lg shadow-indigo-600/30 flex items-center justify-center space-x-2">
+                            <span>Déployer les forces</span>
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Interface en jeu (HUD) -->
+    <header id="game-header" class="hidden bg-slate-900/95 backdrop-blur-md border-b border-slate-800/80 py-2.5 px-4 sm:px-6 flex justify-between items-center z-10 shadow-2xl flex-shrink-0">
+        <div class="flex items-center space-x-3">
+            <button onclick="returnToMenu()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-3 py-2 rounded-xl transition border border-slate-700 flex items-center space-x-1.5 shadow">
+                <i class="fa-solid fa-map-location-dot text-indigo-400"></i>
+                <span class="hidden sm:inline font-bold">Menu Campagne</span>
+            </button>
+            <div class="text-xs font-extrabold text-indigo-400 bg-indigo-950/80 border border-indigo-800/50 px-3 py-1.5 rounded-xl flex items-center space-x-2">
+                <span>Niveau <span id="current-level-num">1</span> :</span>
+                <span id="current-level-name" class="text-white font-bold">Péninsule</span>
+            </div>
+        </div>
+
+        <!-- Factions, Ressources et Économie -->
+        <div class="flex items-center space-x-2 sm:space-x-3">
+            <div class="flex items-center space-x-1.5 bg-amber-500/10 border border-amber-500/30 px-3 py-1.5 rounded-xl">
+                <i class="fa-solid fa-coins text-amber-400 text-xs"></i>
+                <span class="text-xs text-amber-200 font-bold"><span id="stat-money" class="text-white">150</span> $</span>
+            </div>
+            <div class="flex items-center space-x-1.5 bg-blue-500/10 border border-blue-500/30 px-3 py-1.5 rounded-xl">
+                <span class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
+                <span class="text-xs text-blue-200 font-semibold">Alliés: <strong id="stat-player-units" class="text-white">0</strong></span>
+            </div>
+            <div class="flex items-center space-x-1.5 bg-rose-500/10 border border-rose-500/30 px-3 py-1.5 rounded-xl">
+                <span class="w-2 h-2 rounded-full bg-rose-500"></span>
+                <span class="text-xs text-rose-200 font-semibold">Ennemis: <strong id="stat-ai-units" class="text-white">0</strong></span>
+            </div>
+        </div>
+
+        <button onclick="restartCurrentLevel()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs px-3 py-2 rounded-xl transition border border-slate-700 shadow" title="Recommencer">
+            <i class="fa-solid fa-rotate-right"></i>
+        </button>
+    </header>
+
+    <!-- Zone de Jeu / Canvas Voronoi 4X -->
+    <main class="flex-1 relative flex items-center justify-center bg-slate-950 overflow-hidden w-full h-full">
+        <canvas id="gameCanvas" class="w-full h-full cursor-pointer absolute inset-0"></canvas>
+
+        <div id="game-instruction" class="hidden absolute bottom-5 bg-slate-900/90 border border-slate-800 text-slate-300 text-xs px-4 py-2.5 rounded-2xl shadow-2xl backdrop-blur-md pointer-events-none z-20 flex items-center space-x-2 max-w-md text-center">
+            <i class="fa-solid fa-hand-pointer text-indigo-400 text-base"></i>
+            <span>Glissez depuis votre territoire vers un <strong>territoire voisin</strong> pour attaquer ou renforcer !</span>
+        </div>
+    </main>
+
+    <!-- Modale de Commande d'Attaque -->
+    <div id="attack-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-sm w-full p-6 text-left shadow-2xl">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-base font-black text-white flex items-center space-x-2">
+                    <i class="fa-solid fa-crosshairs text-indigo-400"></i>
+                    <span>Plan d'Assaut Tactique</span>
+                </h3>
+                <span id="attack-target-name" class="text-xs bg-slate-800 text-slate-300 px-2.5 py-1 rounded-lg">Cible</span>
+            </div>
+
+            <div class="space-y-2 mb-5">
+                <label class="text-xs font-bold text-slate-400 uppercase tracking-wider">Unité de combat</label>
+                <div class="grid grid-cols-2 gap-3">
+                    <button id="type-opt-infantry" onclick="selectAttackType('infantry')" class="p-3 rounded-2xl border border-indigo-500 bg-indigo-600/20 text-left transition flex flex-col">
+                        <span class="text-xs font-bold text-white flex items-center space-x-1.5 mb-1">
+                            <i class="fa-solid fa-person-running text-indigo-400"></i>
+                            <span>Infanterie</span>
+                        </span>
+                        <span class="text-[10px] text-slate-400">Puissance 1.0 • 1$/u</span>
+                    </button>
+                    <button id="type-opt-tank" onclick="selectAttackType('tank')" class="p-3 rounded-2xl border border-slate-800 bg-slate-800/50 text-left transition flex flex-col hover:border-slate-700">
+                        <span class="text-xs font-bold text-white flex items-center space-x-1.5 mb-1">
+                            <i class="fa-solid fa-truck-monster text-amber-400"></i>
+                            <span>Tank Lourd</span>
+                        </span>
+                        <span class="text-[10px] text-slate-400">Puissance 1.8 • 3$/u</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="space-y-2 mb-6">
+                <div class="flex justify-between text-xs font-bold">
+                    <span class="text-slate-400">Effectif envoyé :</span>
+                    <span id="attack-amount-val" class="text-indigo-400">10</span>
+                </div>
+                <input id="attack-amount-slider" type="range" min="1" max="50" value="10" oninput="updateAttackSlider(this.value)" class="w-full accent-indigo-600 bg-slate-800 rounded-lg h-2 cursor-pointer">
+                <div class="flex justify-between text-[10px] text-slate-500">
+                    <span>Coût total : <strong id="attack-total-cost" class="text-amber-400">10 $</strong></span>
+                    <span>Max dispo : <strong id="attack-max-troops" class="text-slate-300">0</strong></span>
+                </div>
+            </div>
+
+            <div class="flex space-x-3">
+                <button onclick="cancelAttack()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs py-3 rounded-2xl transition">
+                    Annuler
+                </button>
+                <button onclick="confirmAttack()" class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs py-3 rounded-2xl transition shadow-lg shadow-indigo-600/30">
+                    Offensive
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modale Fin de Mission / Victoire & Étoiles -->
+    <div id="gameover-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full p-6 sm:p-8 text-center shadow-2xl">
+            <div id="gameover-icon" class="w-16 h-16 rounded-3xl mx-auto flex items-center justify-center text-2xl mb-3 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                <i class="fa-solid fa-trophy"></i>
+            </div>
+            <h3 id="gameover-title" class="text-2xl font-black text-white mb-1">Victoire !</h3>
+            <p id="gameover-desc" class="text-xs text-slate-400 mb-5 leading-relaxed">Secteur totalement sécurisé.</p>
+
+            <div id="stars-result-container" class="flex justify-center items-center space-x-3 mb-6 bg-slate-950/60 py-3 rounded-2xl border border-slate-800">
+                <i class="fa-solid fa-star text-2xl text-slate-700 star-1"></i>
+                <i class="fa-solid fa-star text-3xl text-slate-700 star-2"></i>
+                <i class="fa-solid fa-star text-2xl text-slate-700 star-3"></i>
+            </div>
+
+            <div class="flex space-x-3">
+                <button onclick="returnToMenu()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs py-3 rounded-2xl transition border border-slate-700">
+                    Menu Campagne
+                </button>
+                <button id="next-level-btn" onclick="nextLevel()" class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs py-3 rounded-2xl transition shadow-lg shadow-indigo-600/30">
+                    Secteur Suivant
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Instance du Canvas
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // BASE DE DONNÉES DES 12 MISSIONS DE LA CAMPAGNE VORONOI
+        const levelsData = [
+            // REGION 1 : ARCHIPEL VESPÉRAL
+            {
+                id: 1,
+                region: "Archipel Vespéral",
+                name: "Atoll de Départ",
+                difficulty: "Facile",
+                description: "Le point d'ancrage stratégique de vos troupes. Capturer les fortifications neutres et éliminer l'avant-poste ennemi.",
+                objective: "Conquérir tous les territoires",
+                factionsCount: 1,
+                timeBonusLimit: 45, // secondes pour 3 étoiles
+                points: [
+                    { x: 0.20, y: 0.35, owner: 'player', troops: 35, type: 'capital' },
+                    { x: 0.80, y: 0.65, owner: 'ai', troops: 35, type: 'capital' },
+                    { x: 0.50, y: 0.50, owner: 'neutral', troops: 12, type: 'fort' },
+                    { x: 0.30, y: 0.70, owner: 'neutral', troops: 10, type: 'standard' },
+                    { x: 0.70, y: 0.30, owner: 'neutral', troops: 10, type: 'standard' },
+                    { x: 0.50, y: 0.80, owner: 'neutral', troops: 15, type: 'standard' }
+                ]
+            },
+            {
+                id: 2,
+                region: "Archipel Vespéral",
+                name: "Archipel des Recifs",
+                difficulty: "Facile",
+                description: "Un réseau d'îles reliées par des passages étroits. Prenez d'assaut la forteresse centrale pour diviser l'ennemi.",
+                objective: "Conquérir la forteresse centrale",
+                factionsCount: 1,
+                timeBonusLimit: 50,
+                points: [
+                    { x: 0.15, y: 0.25, owner: 'player', troops: 40, type: 'capital' },
+                    { x: 0.85, y: 0.75, owner: 'ai', troops: 40, type: 'capital' },
+                    { x: 0.50, y: 0.50, owner: 'neutral', troops: 25, type: 'fort' },
+                    { x: 0.35, y: 0.30, owner: 'neutral', troops: 12, type: 'standard' },
+                    { x: 0.65, y: 0.70, owner: 'neutral', troops: 12, type: 'standard' },
+                    { x: 0.25, y: 0.70, owner: 'neutral', troops: 14, type: 'standard' },
+                    { x: 0.75, y: 0.30, owner: 'neutral', troops: 14, type: 'standard' }
+                ]
+            },
+            {
+                id: 3,
+                region: "Archipel Vespéral",
+                name: "Détroit de l'Éclipse",
+                difficulty: "Moyenne",
+                description: "Les troupes adverses bloquent l'accès au continent. Établissez une tête de pont solide et encerclez leurs positions.",
+                objective: "Contrôler 75% du territoire",
+                factionsCount: 1,
+                timeBonusLimit: 60,
+                points: [
+                    { x: 0.15, y: 0.50, owner: 'player', troops: 45, type: 'capital' },
+                    { x: 0.85, y: 0.30, owner: 'ai', troops: 40, type: 'capital' },
+                    { x: 0.85, y: 0.70, owner: 'ai', troops: 35, type: 'fort' },
+                    { x: 0.35, y: 0.25, owner: 'neutral', troops: 15, type: 'standard' },
+                    { x: 0.35, y: 0.75, owner: 'neutral', troops: 15, type: 'standard' },
+                    { x: 0.55, y: 0.50, owner: 'neutral', troops: 20, type: 'fort' },
+                    { x: 0.60, y: 0.18, owner: 'neutral', troops: 12, type: 'standard' },
+                    { x: 0.60, y: 0.82, owner: 'neutral', troops: 12, type: 'standard' }
+                ]
+            },
+
+            // REGION 2 : PLATEAU DE MAGMA
+            {
+                id: 4,
+                region: "Plateau de Magma",
+                name: "Val des Cendres",
+                difficulty: "Moyenne",
+                description: "Une région volcanique riche en ressources minérales mais bordée de garnisons agressives.",
+                objective: "Éliminer l'influence rouge",
+                factionsCount: 1,
+                timeBonusLimit: 65,
+                points: [
+                    { x: 0.18, y: 0.20, owner: 'player', troops: 45, type: 'capital' },
+                    { x: 0.82, y: 0.80, owner: 'ai', troops: 50, type: 'capital' },
+                    { x: 0.40, y: 0.35, owner: 'neutral', troops: 18, type: 'fort' },
+                    { x: 0.60, y: 0.65, owner: 'neutral', troops: 18, type: 'fort' },
+                    { x: 0.25, y: 0.60, owner: 'neutral', troops: 15, type: 'standard' },
+                    { x: 0.75, y: 0.40, owner: 'neutral', troops: 15, type: 'standard' },
+                    { x: 0.50, y: 0.15, owner: 'neutral', troops: 15, type: 'standard' },
+                    { x: 0.50, y: 0.85, owner: 'neutral', troops: 15, type: 'standard' },
+                    { x: 0.50, y: 0.50, owner: 'neutral', troops: 30, type: 'capital' }
+                ]
+            },
+            {
+                id: 5,
+                region: "Plateau de Magma",
+                name: "Cratère de Sulfure",
+                difficulty: "Difficile",
+                description: "Le cratère offre des avantages défensifs majeurs. Une troisième faction dissidente (Violette) s'invite dans le conflit !",
+                objective: "Subjuguer les 2 factions rivales",
+                factionsCount: 2,
+                timeBonusLimit: 75,
+                points: [
+                    { x: 0.15, y: 0.50, owner: 'player', troops: 45, type: 'capital' },
+                    { x: 0.85, y: 0.20, owner: 'ai', troops: 40, type: 'capital' },
+                    { x: 0.85, y: 0.80, owner: 'ai2', troops: 40, type: 'capital' }, // Faction 2 (Violette)
+                    { x: 0.35, y: 0.30, owner: 'neutral', troops: 16, type: 'standard' },
+                    { x: 0.35, y: 0.70, owner: 'neutral', troops: 16, type: 'standard' },
+                    { x: 0.60, y: 0.50, owner: 'neutral', troops: 25, type: 'fort' },
+                    { x: 0.60, y: 0.20, owner: 'neutral', troops: 15, type: 'standard' },
+                    { x: 0.60, y: 0.80, owner: 'neutral', troops: 15, type: 'standard' },
+                    { x: 0.40, y: 0.50, owner: 'neutral', troops: 20, type: 'fort' }
+                ]
+            },
+            {
+                id: 6,
+                region: "Plateau de Magma",
+                name: "Forteresse de Basalte",
+                difficulty: "Difficile",
+                description: "Une citadel réputée imprenable. Déployez vos blindés pour percer les défenses renforcées.",
+                objective: "Conquérir tous les territoires",
+                factionsCount: 1,
+                timeBonusLimit: 70,
+                points: [
+                    { x: 0.12, y: 0.20, owner: 'player', troops: 50, type: 'capital' },
+                    { x: 0.12, y: 0.80, owner: 'player', troops: 30, type: 'standard' },
+                    { x: 0.88, y: 0.50, owner: 'ai', troops: 60, type: 'capital' },
+                    { x: 0.65, y: 0.35, owner: 'ai', troops: 35, type: 'fort' },
+                    { x: 0.65, y: 0.65, owner: 'ai', troops: 35, type: 'fort' },
+                    { x: 0.35, y: 0.20, owner: 'neutral', troops: 18, type: 'standard' },
+                    { x: 0.35, y: 0.80, owner: 'neutral', troops: 18, type: 'standard' },
+                    { x: 0.45, y: 0.50, owner: 'neutral', troops: 22, type: 'fort' },
+                    { x: 0.75, y: 0.15, owner: 'neutral', troops: 15, type: 'standard' },
+                    { x: 0.75, y: 0.85, owner: 'neutral', troops: 15, type: 'standard' }
+                ]
+            },
+
+            // REGION 3 : TOUNDRA D'AETHEL
+            {
+                id: 7,
+                region: "Toundra d'Aethel",
+                name: "Passe des Frimas",
+                difficulty: "Moyenne",
+                description: "Dans le froid glacial, le recrutement de troupes est ralenti. La planification à long terme est essentielle.",
+                objective: "Dominer 80% du secteur",
+                factionsCount: 1,
+                timeBonusLimit: 75,
+                points: [
+                    { x: 0.20, y: 0.50, owner: 'player', troops: 50, type: 'capital' },
+                    { x: 0.80, y: 0.20, owner: 'ai', troops: 45, type: 'capital' },
+                    { x: 0.80, y: 0.80, owner: 'ai', troops: 45, type: 'capital' },
+                    { x: 0.40, y: 0.25, owner: 'neutral', troops: 20, type: 'fort' },
+                    { x: 0.40, y: 0.75, owner: 'neutral', troops: 20, type: 'fort' },
+                    { x: 0.60, y: 0.30, owner: 'neutral', troops: 18, type: 'standard' },
+                    { x: 0.60, y: 0.70, owner: 'neutral', troops: 18, type: 'standard' },
+                    { x: 0.50, y: 0.50, owner: 'neutral', troops: 28, type: 'capital' },
+                    { x: 0.30, y: 0.50, owner: 'neutral', troops: 15, type: 'standard' },
+                    { x: 0.70, y: 0.50, owner: 'neutral', troops: 15, type: 'standard' }
+                ]
+            },
+            {
+                id: 8,
+                region: "Toundra d'Aethel",
+                name: "Plaines Givrées",
+                difficulty: "Difficile",
+                description: "Un vaste territoire à découvert avec 12 bastions interconnectés. L'IA attaquera sur plusieurs fronts simultanés.",
+                objective: "Conquérir tous les territoires",
+                factionsCount: 1,
+                timeBonusLimit: 80,
+                points: [
+                    { x: 0.15, y: 0.25, owner: 'player', troops: 50, type: 'capital' },
+                    { x: 0.85, y: 0.75, owner: 'ai', troops: 55, type: 'capital' },
+                    { x: 0.30, y: 0.25, owner: 'neutral', troops: 16, type: 'standard' },
+                    { x: 0.30, y: 0.75, owner: 'neutral', troops: 16, type: 'fort' },
+                    { x: 0.70, y: 0.25, owner: 'neutral', troops: 16, type: 'fort' },
+                    { x: 0.70, y: 0.75, owner: 'neutral', troops: 16, type: 'standard' },
+                    { x: 0.50, y: 0.25, owner: 'neutral', troops: 20, type: 'standard' },
+                    { x: 0.50, y: 0.75, owner: 'neutral', troops: 20, type: 'standard' },
+                    { x: 0.30, y: 0.50, owner: 'neutral', troops: 22, type: 'fort' },
+                    { x: 0.70, y: 0.50, owner: 'neutral', troops: 22, type: 'fort' },
+                    { x: 0.50, y: 0.50, owner: 'neutral', troops: 35, type: 'capital' },
+                    { x: 0.15, y: 0.75, owner: 'neutral', troops: 15, type: 'standard' }
+                ]
+            },
+            {
+                id: 9,
+                region: "Toundra d'Aethel",
+                name: "Gorge du Blizzard",
+                difficulty: "Expert",
+                description: "Frontières conflictuelles à 3 fers. Neutralisez les lignes ennemies avant qu'elles ne forment une alliance.",
+                objective: "Vaincre les 2 armées rivales",
+                factionsCount: 2,
+                timeBonusLimit: 85,
+                points: [
+                    { x: 0.15, y: 0.18, owner: 'player', troops: 55, type: 'capital' },
+                    { x: 0.85, y: 0.18, owner: 'ai', troops: 50, type: 'capital' },
+                    { x: 0.50, y: 0.85, owner: 'ai2', troops: 55, type: 'capital' },
+                    { x: 0.35, y: 0.35, owner: 'neutral', troops: 20, type: 'fort' },
+                    { x: 0.65, y: 0.35, owner: 'neutral', troops: 20, type: 'fort' },
+                    { x: 0.50, y: 0.50, owner: 'neutral', troops: 30, type: 'capital' },
+                    { x: 0.25, y: 0.60, owner: 'neutral', troops: 18, type: 'standard' },
+                    { x: 0.75, y: 0.60, owner: 'neutral', troops: 18, type: 'standard' },
+                    { x: 0.50, y: 0.20, owner: 'neutral', troops: 18, type: 'standard' },
+                    { x: 0.20, y: 0.40, owner: 'neutral', troops: 15, type: 'standard' },
+                    { x: 0.80, y: 0.40, owner: 'neutral', troops: 15, type: 'standard' },
+                    { x: 0.35, y: 0.75, owner: 'neutral', troops: 16, type: 'standard' },
+                    { x: 0.65, y: 0.75, owner: 'neutral', troops: 16, type: 'standard' }
+                ]
+            },
+
+            // REGION 4 : NÉBULEUSE CENTRALE
+            {
+                id: 10,
+                region: "Nébuleuse Centrale",
+                name: "Citadelle Céleste",
+                difficulty: "Expert",
+                description: "Le cœur technologique de l'empire Voronoi. Les capitales ennemies produisent des troupes à haute vitesse.",
+                objective: "Capturer les 3 capitales",
+                factionsCount: 1,
+                timeBonusLimit: 90,
+                points: [
+                    { x: 0.15, y: 0.50, owner: 'player', troops: 60, type: 'capital' },
+                    { x: 0.85, y: 0.20, owner: 'ai', troops: 50, type: 'capital' },
+                    { x: 0.85, y: 0.80, owner: 'ai', troops: 50, type: 'capital' },
+                    { x: 0.50, y: 0.50, owner: 'ai', troops: 40, type: 'capital' },
+                    { x: 0.35, y: 0.25, owner: 'neutral', troops: 22, type: 'fort' },
+                    { x: 0.35, y: 0.75, owner: 'neutral', troops: 22, type: 'fort' },
+                    { x: 0.65, y: 0.25, owner: 'neutral', troops: 22, type: 'fort' },
+                    { x: 0.65, y: 0.75, owner: 'neutral', troops: 22, type: 'fort' },
+                    { x: 0.25, y: 0.50, owner: 'neutral', troops: 20, type: 'standard' },
+                    { x: 0.75, y: 0.50, owner: 'neutral', troops: 20, type: 'standard' },
+                    { x: 0.50, y: 0.20, owner: 'neutral', troops: 18, type: 'standard' },
+                    { x: 0.50, y: 0.80, owner: 'neutral', troops: 18, type: 'standard' },
+                    { x: 0.15, y: 0.20, owner: 'neutral', troops: 15, type: 'standard' },
+                    { x: 0.15, y: 0.80, owner: 'neutral', troops: 15, type: 'standard' }
+                ]
+            },
+            {
+                id: 11,
+                region: "Nébuleuse Centrale",
+                name: "Frontière des Titans",
+                difficulty: "Cauchemar",
+                description: "Un champ de bataille géant comptant 16 zones contestées. Une maîtrise parfaite de l'économie et des blindés est requise.",
+                objective: "Contrôler 85% de la carte",
+                factionsCount: 2,
+                timeBonusLimit: 100,
+                points: [
+                    { x: 0.12, y: 0.20, owner: 'player', troops: 60, type: 'capital' },
+                    { x: 0.88, y: 0.20, owner: 'ai', troops: 55, type: 'capital' },
+                    { x: 0.88, y: 0.80, owner: 'ai2', troops: 55, type: 'capital' },
+                    { x: 0.12, y: 0.80, owner: 'player', troops: 40, type: 'fort' },
+                    { x: 0.30, y: 0.20, owner: 'neutral', troops: 20, type: 'standard' },
+                    { x: 0.30, y: 0.80, owner: 'neutral', troops: 20, type: 'standard' },
+                    { x: 0.70, y: 0.20, owner: 'neutral', troops: 20, type: 'standard' },
+                    { x: 0.70, y: 0.80, owner: 'neutral', troops: 20, type: 'standard' },
+                    { x: 0.50, y: 0.35, owner: 'neutral', troops: 25, type: 'fort' },
+                    { x: 0.50, y: 0.65, owner: 'neutral', troops: 25, type: 'fort' },
+                    { x: 0.35, y: 0.50, owner: 'neutral', troops: 25, type: 'fort' },
+                    { x: 0.65, y: 0.50, owner: 'neutral', troops: 25, type: 'fort' },
+                    { x: 0.50, y: 0.50, owner: 'neutral', troops: 45, type: 'capital' },
+                    { x: 0.25, y: 0.35, owner: 'neutral', troops: 18, type: 'standard' },
+                    { x: 0.75, y: 0.35, owner: 'neutral', troops: 18, type: 'standard' },
+                    { x: 0.50, y: 0.12, owner: 'neutral', troops: 18, type: 'standard' }
+                ]
+            },
+            {
+                id: 12,
+                region: "Nébuleuse Centrale",
+                name: "L'Apogée Voronoi",
+                difficulty: "Ultime",
+                description: "Le théâtre de guerre suprême : 18 territoires hyper-fortifiés disputés par toutes les factions. Écrivez l'Histoire !",
+                objective: "Sousmettre la totalité du monde Voronoi",
+                factionsCount: 2,
+                timeBonusLimit: 120,
+                points: [
+                    { x: 0.10, y: 0.15, owner: 'player', troops: 70, type: 'capital' },
+                    { x: 0.90, y: 0.15, owner: 'ai', troops: 65, type: 'capital' },
+                    { x: 0.90, y: 0.85, owner: 'ai2', troops: 65, type: 'capital' },
+                    { x: 0.10, y: 0.85, owner: 'player', troops: 50, type: 'fort' },
+                    { x: 0.50, y: 0.50, owner: 'neutral', troops: 50, type: 'capital' },
+                    { x: 0.30, y: 0.15, owner: 'neutral', troops: 22, type: 'standard' },
+                    { x: 0.70, y: 0.15, owner: 'neutral', troops: 22, type: 'standard' },
+                    { x: 0.30, y: 0.85, owner: 'neutral', troops: 22, type: 'standard' },
+                    { x: 0.70, y: 0.85, owner: 'neutral', troops: 22, type: 'standard' },
+                    { x: 0.20, y: 0.50, owner: 'neutral', troops: 25, type: 'fort' },
+                    { x: 0.80, y: 0.50, owner: 'neutral', troops: 25, type: 'fort' },
+                    { x: 0.50, y: 0.20, owner: 'neutral', troops: 25, type: 'fort' },
+                    { x: 0.50, y: 0.80, owner: 'neutral', troops: 25, type: 'fort' },
+                    { x: 0.35, y: 0.35, owner: 'neutral', troops: 20, type: 'standard' },
+                    { x: 0.65, y: 0.35, owner: 'neutral', troops: 20, type: 'standard' },
+                    { x: 0.35, y: 0.65, owner: 'neutral', troops: 20, type: 'standard' },
+                    { x: 0.65, y: 0.65, owner: 'neutral', troops: 20, type: 'standard' },
+                    { x: 0.50, y: 0.35, owner: 'neutral', troops: 20, type: 'standard' }
+                ]
+            }
+        ];
+
+        // État de progression globale
+        let levelStars = JSON.parse(localStorage.getItem('nexus_clash_stars_v2') || '{}');
+        let completedLevels = JSON.parse(localStorage.getItem('nexus_clash_completed_v2') || '[0]'); // Niv 0 débloqué au départ
+
+        let activeRegionFilter = 'all';
+        let selectedMissionIndex = null;
+
+        // Variables de jeu en direct
+        let currentLevelIndex = 0;
+        let territories = [];
+        let units = [];
+        let particles = [];
+        let gameActive = false;
+        let aiTimer = 0;
+        let ai2Timer = 0;
+        let playerMoney = 180;
+        let levelStartTime = 0;
+
+        // Visual Interaction State
+        let isDragging = false;
+        let dragSourceTerritory = null;
+        let currentPointerPos = { x: 0, y: 0 };
+
+        // Configuration de l'attaque
+        let pendingAttackSource = null;
+        let pendingAttackTarget = null;
+        let selectedAttackType = 'infantry';
+        let attackAmount = 10;
+
+        // Couleurs des Factions
+        const THEME = {
+            player: { primary: '#3b82f6', fill: 'rgba(37, 99, 235, 0.28)', border: '#60a5fa', text: '#ffffff' },
+            ai: { primary: '#f43f5e', fill: 'rgba(225, 29, 72, 0.28)', border: '#fb7185', text: '#ffffff' },
+            ai2: { primary: '#a855f7', fill: 'rgba(168, 85, 247, 0.28)', border: '#c084fc', text: '#ffffff' }, // Faction Violette
+            neutral: { primary: '#475569', fill: 'rgba(30, 41, 59, 0.55)', border: '#64748b', text: '#cbd5e1' }
+        };
+
+        function resizeCanvas() {
+            const container = canvas.parentElement;
+            if (container) {
+                canvas.width = container.clientWidth;
+                canvas.height = container.clientHeight;
+                if (gameActive && territories.length > 0) {
+                    recomputeVoronoiAndPolygons();
+                }
+            }
+        }
+        window.addEventListener('resize', resizeCanvas);
+
+        function filterRegion(regionName) {
+            activeRegionFilter = regionName;
+            document.querySelectorAll('.region-filter-btn').forEach(btn => {
+                btn.className = "region-filter-btn px-4 py-2 rounded-xl text-xs font-bold transition bg-slate-900 text-slate-400 hover:bg-slate-800 border border-slate-800";
+            });
+
+            if (regionName === 'all') document.getElementById('region-btn-all').className = "region-filter-btn px-4 py-2 rounded-xl text-xs font-bold transition bg-indigo-600 text-white shadow-lg";
+            else if (regionName === 'Archipel Vespéral') document.getElementById('region-btn-1').className = "region-filter-btn px-4 py-2 rounded-xl text-xs font-bold transition bg-indigo-600 text-white shadow-lg";
+            else if (regionName === 'Plateau de Magma') document.getElementById('region-btn-2').className = "region-filter-btn px-4 py-2 rounded-xl text-xs font-bold transition bg-indigo-600 text-white shadow-lg";
+            else if (regionName === 'Toundra d\'Aethel') document.getElementById('region-btn-3').className = "region-filter-btn px-4 py-2 rounded-xl text-xs font-bold transition bg-indigo-600 text-white shadow-lg";
+            else if (regionName === 'Nébuleuse Centrale') document.getElementById('region-btn-4').className = "region-filter-btn px-4 py-2 rounded-xl text-xs font-bold transition bg-indigo-600 text-white shadow-lg";
+
+            buildLevelSelectMenu();
+        }
+
+        function buildLevelSelectMenu() {
+            const grid = document.getElementById('levels-grid');
+            if (!grid) return;
+            grid.innerHTML = '';
+
+            let totalStars = 0;
+            let completedCount = 0;
+
+            levelsData.forEach((lvl, idx) => {
+                const isUnlocked = idx === 0 || completedLevels.includes(idx - 1) || completedLevels.includes(idx);
+                const isCompleted = completedLevels.includes(idx);
+                const stars = levelStars[idx] || 0;
+                totalStars += stars;
+                if (isCompleted) completedCount++;
+
+                if (activeRegionFilter !== 'all' && lvl.region !== activeRegionFilter) return;
+
+                let card = document.createElement('div');
+                card.className = `border rounded-3xl p-4 flex flex-col justify-between transition-all relative overflow-hidden ${
+                    isUnlocked 
+                        ? 'bg-slate-900/90 border-slate-800 hover:border-indigo-500/80 hover:bg-slate-800/80 cursor-pointer shadow-xl group' 
+                        : 'bg-slate-950/60 border-slate-900 opacity-55 cursor-not-allowed'
+                }`;
+
+                let starsHtml = '';
+                for (let s = 1; s <= 3; s++) {
+                    starsHtml += `<i class="fa-solid fa-star text-xs ${s <= stars ? 'text-amber-400' : 'text-slate-700'}"></i>`;
+                }
+
+                card.innerHTML = `
+                    <div>
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-[10px] font-extrabold uppercase tracking-widest text-indigo-400">Niveau 0${lvl.id}</span>
+                            <div class="flex items-center space-x-1">${starsHtml}</div>
+                        </div>
+                        <h3 class="text-sm font-black text-white mb-1 ${isUnlocked ? 'group-hover:text-indigo-400' : ''} transition">${lvl.name}</h3>
+                        <div class="text-[10px] text-slate-500 mb-2">${lvl.region}</div>
+                        <p class="text-xs text-slate-400 line-clamp-2 leading-relaxed mb-3">${lvl.description}</p>
+                    </div>
+
+                    <div class="pt-2.5 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
+                        <span class="text-[10px]"><i class="fa-solid fa-shapes text-indigo-400 mr-1"></i> ${lvl.points.length} Zones</span>
+                        ${isUnlocked 
+                            ? `<span class="text-indigo-400 font-bold group-hover:translate-x-1 transition text-xs flex items-center gap-1">Jouer <i class="fa-solid fa-chevron-right text-[9px]"></i></span>`
+                            : `<span class="text-[10px] text-slate-600"><i class="fa-solid fa-lock mr-1"></i> Verrouillé</span>`
+                        }
+                    </div>
+                `;
+
+                if (isUnlocked) {
+                    card.onclick = () => openMissionBriefing(idx);
+                }
+
+                grid.appendChild(card);
+            });
+
+            document.getElementById('total-stars-count').textContent = `${totalStars} / 36`;
+            document.getElementById('campaign-progress-text').textContent = `${completedCount} / 12`;
+        }
+
+        function openMissionBriefing(index) {
+            selectedMissionIndex = index;
+            const lvl = levelsData[index];
+
+            document.getElementById('briefing-region-tag').textContent = lvl.region;
+            document.getElementById('briefing-difficulty-tag').textContent = lvl.difficulty;
+            document.getElementById('briefing-title').textContent = lvl.name;
+            document.getElementById('briefing-description').textContent = lvl.description;
+            document.getElementById('briefing-objective').textContent = lvl.objective;
+            document.getElementById('briefing-territories-count').textContent = lvl.points.length;
+            document.getElementById('briefing-factions-count').textContent = `${lvl.factionsCount} Ennemi(s)`;
+
+            const starsContainer = document.getElementById('briefing-stars-display');
+            let stars = levelStars[index] || 0;
+            starsContainer.innerHTML = '';
+            for (let s = 1; s <= 3; s++) {
+                starsContainer.innerHTML += `<i class="fa-solid fa-star ${s <= stars ? 'text-amber-400' : 'text-slate-800'}"></i>`;
+            }
+
+            document.getElementById('briefing-modal').classList.remove('hidden');
+
+            // Dessiner la prévisualisation Voronoi miniature
+            setTimeout(() => drawPreviewMap(lvl), 50);
+        }
+
+        function drawPreviewMap(lvl) {
+            const pCanvas = document.getElementById('previewCanvas');
+            if (!pCanvas) return;
+            const pCtx = pCanvas.getContext('2d');
+            pCanvas.width = pCanvas.parentElement.clientWidth;
+            pCanvas.height = pCanvas.parentElement.clientHeight;
+
+            pCtx.clearRect(0, 0, pCanvas.width, pCanvas.height);
+
+            const step = 5;
+            const cols = Math.floor(pCanvas.width / step);
+            const rows = Math.floor(pCanvas.height / step);
+
+            let previewPoints = lvl.points.map(p => ({
+                x: p.x * pCanvas.width,
+                y: p.y * pCanvas.height,
+                owner: p.owner
+            }));
+
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    let px = c * step + step / 2;
+                    let py = r * step + step / 2;
+
+                    let closestIdx = 0;
+                    let minDist = Infinity;
+                    for (let i = 0; i < previewPoints.length; i++) {
+                        let d = Math.hypot(previewPoints[i].x - px, previewPoints[i].y - py);
+                        if (d < minDist) {
+                            minDist = d;
+                            closestIdx = i;
+                        }
+                    }
+
+                    let pt = previewPoints[closestIdx];
+                    pCtx.fillStyle = THEME[pt.owner].fill;
+                    pCtx.fillRect(c * step, r * step, step, step);
+                }
+            }
+
+            // Repères des points
+            previewPoints.forEach(pt => {
+                pCtx.beginPath();
+                pCtx.arc(pt.x, pt.y, 4, 0, Math.PI * 2);
+                pCtx.fillStyle = THEME[pt.owner].primary;
+                pCtx.fill();
+            });
+        }
+
+        function closeBriefingModal() {
+            document.getElementById('briefing-modal').classList.add('hidden');
+        }
+
+        function confirmStartMission() {
+            closeBriefingModal();
+            if (selectedMissionIndex !== null) {
+                startLevel(selectedMissionIndex);
+            }
+        }
+
+        function returnToMenu() {
+            gameActive = false;
+            units = [];
+            particles = [];
+
+            document.getElementById('game-header').classList.add('hidden');
+            document.getElementById('game-instruction').classList.add('hidden');
+            document.getElementById('gameover-modal').classList.add('hidden');
+            document.getElementById('attack-modal').classList.add('hidden');
+            document.getElementById('briefing-modal').classList.add('hidden');
+
+            const screen = document.getElementById('level-select-screen');
+            screen.classList.remove('hidden');
+
+            buildLevelSelectMenu();
+        }
+
+        function resetCampaignProgress() {
+            if (confirm("Réinitialiser toute la progression de la campagne ?")) {
+                completedLevels = [0];
+                levelStars = {};
+                localStorage.setItem('nexus_clash_completed_v2', JSON.stringify(completedLevels));
+                localStorage.setItem('nexus_clash_stars_v2', JSON.stringify(levelStars));
+                buildLevelSelectMenu();
+            }
+        }
+
+        function startLevel(index) {
+            currentLevelIndex = index;
+
+            document.getElementById('level-select-screen').classList.add('hidden');
+            document.getElementById('game-header').classList.remove('hidden');
+            document.getElementById('game-instruction').classList.remove('hidden');
+
+            resizeCanvas();
+            loadLevelData(index);
+
+            gameActive = true;
+            aiTimer = 0;
+            ai2Timer = 0;
+            units = [];
+            particles = [];
+            playerMoney = 180;
+            levelStartTime = Date.now();
+            isDragging = false;
+
+            document.getElementById('current-level-num').textContent = levelsData[index].id;
+            document.getElementById('current-level-name').textContent = levelsData[index].name;
+
+            document.getElementById('gameover-modal').classList.add('hidden');
+            document.getElementById('attack-modal').classList.add('hidden');
+        }
+
+        function loadLevelData(index) {
+            const lvl = levelsData[index];
+            territories = lvl.points.map((p, idx) => ({
+                id: idx,
+                x: p.x * canvas.width,
+                y: p.y * canvas.height,
+                owner: p.owner,
+                troops: p.troops,
+                type: p.type || 'standard',
+                maxTroops: p.type === 'capital' ? 100 : (p.type === 'fort' ? 80 : 60),
+                growthRate: p.type === 'capital' ? 0.08 : (p.type === 'fort' ? 0.05 : 0.03),
+                neighbors: []
+            }));
+            recomputeVoronoiAndPolygons();
+        }
+
+        function recomputeVoronoiAndPolygons() {
+            if (canvas.width === 0 || canvas.height === 0) return;
+            const lvl = levelsData[currentLevelIndex];
+            territories.forEach((t, idx) => {
+                t.x = lvl.points[idx].x * canvas.width;
+                t.y = lvl.points[idx].y * canvas.height;
+            });
+
+            const step = 8;
+            const cols = Math.floor(canvas.width / step);
+            const rows = Math.floor(canvas.height / step);
+
+            territories.forEach(t => t.neighbors = new Set());
+
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    let px = c * step + step / 2;
+                    let py = r * step + step / 2;
+                    let t1 = getClosestTerritory(px, py);
+
+                    if (c + 1 < cols) {
+                        let rx = (c + 1) * step + step / 2;
+                        let t2 = getClosestTerritory(rx, py);
+                        if (t1 !== t2) {
+                            territories[t1].neighbors.add(t2);
+                            territories[t2].neighbors.add(t1);
+                        }
+                    }
+                    if (r + 1 < rows) {
+                        let dy = (r + 1) * step + step / 2;
+                        let t2 = getClosestTerritory(px, dy);
+                        if (t1 !== t2) {
+                            territories[t1].neighbors.add(t2);
+                            territories[t2].neighbors.add(t1);
+                        }
+                    }
+                }
+            }
+
+            territories.forEach(t => t.neighbors = Array.from(t.neighbors));
+        }
+
+        function getClosestTerritory(x, y) {
+            let closestIdx = 0;
+            let minDist = Infinity;
+            for (let i = 0; i < territories.length; i++) {
+                let d = Math.hypot(territories[i].x - x, territories[i].y - y);
+                if (d < minDist) {
+                    minDist = d;
+                    closestIdx = i;
+                }
+            }
+            return closestIdx;
+        }
+
+        function restartCurrentLevel() {
+            startLevel(currentLevelIndex);
+        }
+
+        function nextLevel() {
+            if (currentLevelIndex + 1 < levelsData.length) {
+                startLevel(currentLevelIndex + 1);
+            } else {
+                returnToMenu();
+            }
+        }
+
+        function getCoordinates(e) {
+            const rect = canvas.getBoundingClientRect();
+            let clientX = e.clientX;
+            let clientY = e.clientY;
+            if (e.touches && e.touches.length > 0) {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            }
+            return { x: clientX - rect.left, y: clientY - rect.top };
+        }
+
+        function handlePointerDown(e) {
+            if (!gameActive) return;
+            const pos = getCoordinates(e);
+            let closestIdx = getClosestTerritory(pos.x, pos.y);
+            let t = territories[closestIdx];
+
+            if (t && Math.hypot(t.x - pos.x, t.y - pos.y) < 150) {
+                if (t.owner === 'player' && t.troops > 2) {
+                    isDragging = true;
+                    dragSourceTerritory = t;
+                    currentPointerPos = pos;
+                }
+            }
+        }
+
+        function handlePointerMove(e) {
+            if (!isDragging) return;
+            currentPointerPos = getCoordinates(e);
+        }
+
+        function handlePointerUp(e) {
+            if (!isDragging) return;
+            const pos = getCoordinates(e);
+            let targetIdx = getClosestTerritory(pos.x, pos.y);
+            let targetTerritory = territories[targetIdx];
+
+            if (targetTerritory && dragSourceTerritory && targetTerritory !== dragSourceTerritory) {
+                if (dragSourceTerritory.neighbors.includes(targetTerritory.id)) {
+                    openAttackModal(dragSourceTerritory, targetTerritory);
+                } else {
+                    particles.push({
+                        x: pos.x, y: pos.y, vx: 0, vy: -1.5, life: 1.2, color: '#f43f5e', text: 'Non adjacent !'
+                    });
+                }
+            }
+
+            isDragging = false;
+            dragSourceTerritory = null;
+        }
+
+        canvas.addEventListener('pointerdown', handlePointerDown);
+        canvas.addEventListener('pointermove', handlePointerMove);
+        canvas.addEventListener('pointerup', handlePointerUp);
+
+        function openAttackModal(from, to) {
+            pendingAttackSource = from;
+            pendingAttackTarget = to;
+            selectedAttackType = 'infantry';
+
+            let maxAvailable = Math.floor(from.troops - 1);
+            attackAmount = Math.min(15, maxAvailable);
+            if (attackAmount < 1) attackAmount = 1;
+
+            document.getElementById('attack-target-name').textContent = to.owner === 'player' ? 'Renfort' : 'Cible';
+            document.getElementById('attack-max-troops').textContent = maxAvailable;
+
+            const slider = document.getElementById('attack-amount-slider');
+            slider.max = maxAvailable;
+            slider.value = attackAmount;
+
+            selectAttackType('infantry');
+            document.getElementById('attack-modal').classList.remove('hidden');
+        }
+
+        function selectAttackType(type) {
+            selectedAttackType = type;
+            const btnInf = document.getElementById('type-opt-infantry');
+            const btnTank = document.getElementById('type-opt-tank');
+
+            if (type === 'infantry') {
+                btnInf.className = "p-3 rounded-2xl border border-indigo-500 bg-indigo-600/20 text-left transition flex flex-col";
+                btnTank.className = "p-3 rounded-2xl border border-slate-800 bg-slate-800/50 text-left transition flex flex-col hover:border-slate-700";
+            } else {
+                btnTank.className = "p-3 rounded-2xl border border-indigo-500 bg-indigo-600/20 text-left transition flex flex-col";
+                btnInf.className = "p-3 rounded-2xl border border-slate-800 bg-slate-800/50 text-left transition flex flex-col hover:border-slate-700";
+            }
+            updateAttackSlider(attackAmount);
+        }
+
+        function updateAttackSlider(val) {
+            attackAmount = parseInt(val);
+            document.getElementById('attack-amount-val').textContent = attackAmount;
+            let unitCost = selectedAttackType === 'tank' ? 3 : 1;
+            document.getElementById('attack-total-cost').textContent = (attackAmount * unitCost) + ' $';
+        }
+
+        function cancelAttack() {
+            document.getElementById('attack-modal').classList.add('hidden');
+            pendingAttackSource = null;
+            pendingAttackTarget = null;
+        }
+
+        function confirmAttack() {
+            if (!pendingAttackSource || !pendingAttackTarget) return;
+
+            let unitCost = selectedAttackType === 'tank' ? 3 : 1;
+            let totalCost = attackAmount * unitCost;
+
+            if (playerMoney < totalCost) {
+                particles.push({
+                    x: pendingAttackSource.x, y: pendingAttackSource.y - 30, vx: 0, vy: -1, life: 1.0, color: '#f59e0b', text: 'Trésorerie insuffisante !'
+                });
+                cancelAttack();
+                return;
+            }
+
+            playerMoney -= totalCost;
+            pendingAttackSource.troops -= attackAmount;
+
+            for (let i = 0; i < attackAmount; i++) {
+                units.push({
+                    x: pendingAttackSource.x,
+                    y: pendingAttackSource.y,
+                    targetTerritory: pendingAttackTarget,
+                    owner: 'player',
+                    type: selectedAttackType,
+                    damage: selectedAttackType === 'tank' ? 1.8 : 1.0,
+                    speed: selectedAttackType === 'tank' ? 3.8 : 5.2,
+                    offsetX: (Math.random() - 0.5) * 40,
+                    offsetY: (Math.random() - 0.5) * 40
+                });
+            }
+
+            cancelAttack();
+        }
+
+        function updateAI(deltaTime) {
+            aiTimer += deltaTime;
+            if (aiTimer > 1.6) {
+                aiTimer = 0;
+                executeAIFactionTurn('ai');
+            }
+
+            ai2Timer += deltaTime;
+            if (ai2Timer > 2.0) {
+                ai2Timer = 0;
+                executeAIFactionTurn('ai2');
+            }
+        }
+
+        function executeAIFactionTurn(factionKey) {
+            let factionTerritories = territories.filter(t => t.owner === factionKey && t.troops > 18);
+            if (factionTerritories.length > 0) {
+                let source = factionTerritories[Math.floor(Math.random() * factionTerritories.length)];
+                let neighborTargets = source.neighbors.map(id => territories[id]).filter(t => t.owner !== factionKey);
+
+                if (neighborTargets.length > 0) {
+                    neighborTargets.sort((a, b) => a.troops - b.troops);
+                    let target = neighborTargets[0];
+                    let count = Math.floor(source.troops / 2);
+                    source.troops -= count;
+                    let aiType = (source.troops > 35 && Math.random() > 0.35) ? 'tank' : 'infantry';
+
+                    for (let i = 0; i < count; i++) {
+                        units.push({
+                            x: source.x,
+                            y: source.y,
+                            targetTerritory: target,
+                            owner: factionKey,
+                            type: aiType,
+                            damage: aiType === 'tank' ? 1.8 : 1.0,
+                            speed: aiType === 'tank' ? 3.8 : 5.2,
+                            offsetX: (Math.random() - 0.5) * 40,
+                            offsetY: (Math.random() - 0.5) * 40
+                        });
+                    }
+                }
+            }
+        }
+
+        let lastTime = performance.now();
+        function gameLoop(currentTime) {
+            let deltaTime = (currentTime - lastTime) / 1000;
+            lastTime = currentTime;
+            if (deltaTime > 0.1) deltaTime = 0.1;
+
+            if (gameActive) {
+                update(deltaTime);
+                updateAI(deltaTime);
+            }
+
+            render();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function update(deltaTime) {
+            let playerTerritoryCount = 0;
+
+            territories.forEach(t => {
+                if (t.owner !== 'neutral') {
+                    t.troops += t.growthRate * deltaTime * 35;
+                    if (t.troops > t.maxTroops) t.troops = t.maxTroops;
+                }
+                if (t.owner === 'player') {
+                    playerTerritoryCount += (t.type === 'capital' ? 2 : 1);
+                }
+            });
+
+            if (playerTerritoryCount > 0) {
+                playerMoney += playerTerritoryCount * 0.95 * deltaTime;
+            }
+
+            for (let i = units.length - 1; i >= 0; i--) {
+                let u = units[i];
+                let target = u.targetTerritory;
+
+                let destX = target.x + u.offsetX;
+                let destY = target.y + u.offsetY;
+                let dx = destX - u.x;
+                let dy = destY - u.y;
+                let dist = Math.hypot(dx, dy);
+
+                if (dist < 8) {
+                    if (target.owner === u.owner) {
+                        target.troops += u.type === 'tank' ? 2 : 1;
+                        if (target.troops > target.maxTroops) target.troops = target.maxTroops;
+                    } else {
+                        target.troops -= u.damage;
+                        if (target.troops <= 0) {
+                            target.owner = u.owner;
+                            target.troops = Math.abs(target.troops) + 1;
+                        }
+                    }
+                    units.splice(i, 1);
+                } else {
+                    u.x += (dx / dist) * u.speed;
+                    u.y += (dy / dist) * u.speed;
+                }
+            }
+
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let pt = particles[i];
+                pt.x += pt.vx;
+                pt.y += pt.vy;
+                pt.life -= deltaTime * 1.5;
+                if (pt.life <= 0) particles.splice(i, 1);
+            }
+
+            let playerUnitsTotal = 0;
+            let aiUnitsTotal = 0;
+            let playerTerritoriesCount = 0;
+            let enemyTerritoriesCount = 0;
+
+            territories.forEach(t => {
+                if (t.owner === 'player') { playerUnitsTotal += Math.floor(t.troops); playerTerritoriesCount++; }
+                else if (t.owner.startsWith('ai')) { aiUnitsTotal += Math.floor(t.troops); enemyTerritoriesCount++; }
+            });
+
+            document.getElementById('stat-money').textContent = Math.floor(playerMoney);
+            document.getElementById('stat-player-units').textContent = playerUnitsTotal;
+            document.getElementById('stat-ai-units').textContent = aiUnitsTotal;
+
+            // Vérification des conditions de victoire/défaite
+            let currentLvlObj = levelsData[currentLevelIndex];
+            if (currentLvlObj.objective.includes('75%') || currentLvlObj.objective.includes('80%') || currentLvlObj.objective.includes('85%')) {
+                let targetPct = currentLvlObj.objective.includes('85%') ? 0.85 : (currentLvlObj.objective.includes('80%') ? 0.80 : 0.75);
+                if ((playerTerritoriesCount / territories.length) >= targetPct) {
+                    endLevel(true);
+                }
+            } else {
+                if (playerTerritoriesCount > 0 && enemyTerritoriesCount === 0) {
+                    endLevel(true);
+                }
+            }
+
+            if (playerTerritoriesCount === 0 && units.filter(u => u.owner === 'player').length === 0) {
+                endLevel(false);
+            }
+        }
+
+        function render() {
+            if (!ctx || canvas.width === 0 || canvas.height === 0) return;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const step = 8;
+            const cols = Math.floor(canvas.width / step);
+            const rows = Math.floor(canvas.height / step);
+
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    let px = c * step + step / 2;
+                    let py = r * step + step / 2;
+                    let tIdx = getClosestTerritory(px, py);
+                    let t = territories[tIdx];
+                    if (!t) continue;
+                    let config = THEME[t.owner];
+
+                    ctx.fillStyle = config.fill;
+                    ctx.fillRect(c * step, r * step, step, step);
+
+                    if (c + 1 < cols) {
+                        let rx = (c + 1) * step + step / 2;
+                        if (getClosestTerritory(rx, py) !== tIdx) {
+                            ctx.fillStyle = 'rgba(2, 6, 23, 0.95)';
+                            ctx.fillRect((c + 1) * step - 1, r * step, 2, step);
+                        }
+                    }
+                    if (r + 1 < rows) {
+                        let dy = (r + 1) * step + step / 2;
+                        if (getClosestTerritory(px, dy) !== tIdx) {
+                            ctx.fillStyle = 'rgba(2, 6, 23, 0.95)';
+                            ctx.fillRect(c * step, (r + 1) * step - 1, step, 2);
+                        }
+                    }
+                }
+            }
+
+            // Flèche de sélection tactique
+            if (isDragging && dragSourceTerritory) {
+                const pos = currentPointerPos;
+                let targetIdx = getClosestTerritory(pos.x, pos.y);
+                let targetT = territories[targetIdx];
+                let isNeighbor = targetT && dragSourceTerritory.neighbors.includes(targetT.id);
+
+                ctx.save();
+                ctx.strokeStyle = isNeighbor ? '#38bdf8' : '#f43f5e';
+                ctx.lineWidth = 4;
+                ctx.setLineDash([8, 6]);
+
+                ctx.beginPath();
+                ctx.moveTo(dragSourceTerritory.x, dragSourceTerritory.y);
+                ctx.lineTo(pos.x, pos.y);
+                ctx.stroke();
+
+                let angle = Math.atan2(pos.y - dragSourceTerritory.y, pos.x - dragSourceTerritory.x);
+                ctx.fillStyle = isNeighbor ? '#38bdf8' : '#f43f5e';
+                ctx.setLineDash([]);
+                ctx.beginPath();
+                ctx.moveTo(pos.x, pos.y);
+                ctx.lineTo(pos.x - 16 * Math.cos(angle - Math.PI / 6), pos.y - 16 * Math.sin(angle - Math.PI / 6));
+                ctx.lineTo(pos.x - 16 * Math.cos(angle + Math.PI / 6), pos.y - 16 * Math.sin(angle + Math.PI / 6));
+                ctx.closePath();
+                ctx.fill();
+                ctx.restore();
+            }
+
+            // Nœuds Voronoi
+            territories.forEach(t => {
+                let config = THEME[t.owner];
+                let radius = t.type === 'capital' ? 32 : (t.type === 'fort' ? 26 : 20);
+
+                ctx.shadowColor = config.primary;
+                ctx.shadowBlur = t.type === 'capital' ? 18 : 10;
+
+                ctx.beginPath();
+                ctx.arc(t.x, t.y, radius, 0, Math.PI * 2);
+                ctx.fillStyle = config.primary;
+                ctx.fill();
+
+                ctx.shadowBlur = 0;
+                ctx.strokeStyle = '#020617';
+                ctx.lineWidth = 3.5;
+                ctx.stroke();
+
+                if (t.type === 'capital') {
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = 'bold 12px FontAwesome, Inter, sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'bottom';
+                    ctx.fillText('🏛️', t.x, t.y - 3);
+                } else if (t.type === 'fort') {
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = 'bold 11px FontAwesome, Inter, sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'bottom';
+                    ctx.fillText('🛡️', t.x, t.y - 3);
+                }
+
+                ctx.fillStyle = config.text;
+                ctx.font = 'bold 13px Inter, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = t.type === 'standard' ? 'middle' : 'top';
+                ctx.fillText(Math.floor(t.troops), t.x, t.type === 'standard' ? t.y : t.y + 2);
+            });
+
+            // Unités
+            units.forEach(u => {
+                let config = THEME[u.owner];
+                ctx.shadowColor = u.type === 'tank' ? '#f59e0b' : config.primary;
+                ctx.shadowBlur = u.type === 'tank' ? 12 : 5;
+
+                if (u.type === 'tank') {
+                    ctx.fillStyle = '#f59e0b';
+                    ctx.fillRect(u.x - 5, u.y - 5, 10, 10);
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 1.5;
+                    ctx.strokeRect(u.x - 5, u.y - 5, 10, 10);
+                } else {
+                    ctx.beginPath();
+                    ctx.arc(u.x, u.y, 4, 0, Math.PI * 2);
+                    ctx.fillStyle = config.primary;
+                    ctx.fill();
+                }
+                ctx.shadowBlur = 0;
+            });
+
+            // Particules
+            particles.forEach(pt => {
+                ctx.globalAlpha = pt.life;
+                if (pt.text) {
+                    ctx.fillStyle = pt.color;
+                    ctx.font = 'bold 13px Inter, sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(pt.text, pt.x, pt.y);
+                }
+                ctx.globalAlpha = 1.0;
+            });
+        }
+
+        function endLevel(playerWon) {
+            gameActive = false;
+            let modal = document.getElementById('gameover-modal');
+            let title = document.getElementById('gameover-title');
+            let desc = document.getElementById('gameover-desc');
+            let icon = document.getElementById('gameover-icon');
+            let nextBtn = document.getElementById('next-level-btn');
+
+            if (playerWon) {
+                let elapsedTime = (Date.now() - levelStartTime) / 1000;
+                let lvl = levelsData[currentLevelIndex];
+
+                // Calcul des Étoiles
+                let stars = 1;
+                if (elapsedTime <= lvl.timeBonusLimit) stars = 3;
+                else if (elapsedTime <= lvl.timeBonusLimit * 1.5) stars = 2;
+
+                levelStars[currentLevelIndex] = Math.max(levelStars[currentLevelIndex] || 0, stars);
+                localStorage.setItem('nexus_clash_stars_v2', JSON.stringify(levelStars));
+
+                if (!completedLevels.includes(currentLevelIndex)) {
+                    completedLevels.push(currentLevelIndex);
+                    localStorage.setItem('nexus_clash_completed_v2', JSON.stringify(completedLevels));
+                }
+
+                title.textContent = "Victoire Éclatante !";
+                desc.textContent = `Secteur conquis en ${Math.floor(elapsedTime)}s ! Vos tactiques militaires ont surpassé l'ennemi.`;
+                icon.className = "w-16 h-16 rounded-3xl mx-auto flex items-center justify-center text-2xl mb-3 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shadow-xl";
+                icon.innerHTML = '<i class="fa-solid fa-trophy"></i>';
+
+                // Afficher les Étoiles dans la Modale
+                const star1 = modal.querySelector('.star-1');
+                const star2 = modal.querySelector('.star-2');
+                const star3 = modal.querySelector('.star-3');
+
+                star1.className = `fa-solid fa-star text-2xl ${stars >= 1 ? 'text-amber-400 animate-bounce' : 'text-slate-700'}`;
+                star2.className = `fa-solid fa-star text-3xl ${stars >= 2 ? 'text-amber-400 animate-bounce' : 'text-slate-700'}`;
+                star3.className = `fa-solid fa-star text-2xl ${stars >= 3 ? 'text-amber-400 animate-bounce' : 'text-slate-700'}`;
+
+                if (currentLevelIndex + 1 < levelsData.length) {
+                    if (nextBtn) nextBtn.classList.remove('hidden');
+                } else {
+                    if (nextBtn) nextBtn.classList.add('hidden');
+                    desc.textContent = "Campagne Ultime Terminée ! Vous régnez en maître absolu sur l'ensemble du continent Voronoi !";
+                }
+            } else {
+                title.textContent = "Lignes Enfoncées...";
+                desc.textContent = "Vos troupes ont été débordées par la coalition ennemie. Repensez votre stratégie.";
+                icon.className = "w-16 h-16 rounded-3xl mx-auto flex items-center justify-center text-2xl mb-3 bg-rose-500/20 text-rose-400 border border-rose-500/30 shadow-xl";
+                icon.innerHTML = '<i class="fa-solid fa-skull"></i>';
+
+                modal.querySelector('.star-1').className = 'fa-solid fa-star text-2xl text-slate-800';
+                modal.querySelector('.star-2').className = 'fa-solid fa-star text-3xl text-slate-800';
+                modal.querySelector('.star-3').className = 'fa-solid fa-star text-2xl text-slate-800';
+
+                if (nextBtn) nextBtn.classList.add('hidden');
+            }
+
+            if (modal) modal.classList.remove('hidden');
+        }
+
+        // Démarrage et boucle principale
+        window.onload = function() {
+            buildLevelSelectMenu();
+            resizeCanvas();
+            requestAnimationFrame(gameLoop);
+        };
+    </script>
+</body>
+</html>
