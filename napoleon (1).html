@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="fr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Napoléon : Empire d’Europe</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{color-scheme:dark;--gold:#d4af37;--ink:#14110d;--panel:#1d1812;box-sizing:border-box}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:#0d0b08;overflow:hidden;font-family:Cinzel,Georgia,serif;color:#e8dcc0;touch-action:none;user-select:none}
+canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
+#top{position:fixed;top:0;left:0;right:0;height:44px;padding-top:env(safe-area-inset-top,0px);background:linear-gradient(#2a2118,#14110d);border-bottom:2px solid var(--gold);display:flex;gap:7px;align-items:center;justify-content:center;font-size:12px;z-index:5;height:calc(44px + env(safe-area-inset-top,0px))}
+#top b{color:var(--gold)}
+.bar{position:fixed;left:0;right:0;bottom:0;padding:8px 10px calc(8px + env(safe-area-inset-bottom,0px));background:linear-gradient(#241d14,#100d09);border-top:2px solid var(--gold);z-index:5}
+#bhud{display:none}
+.row{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;align-items:center}
+button{font-family:inherit;font-size:13px;padding:9px 12px;color:#f3e7c4;background:linear-gradient(#5a1d1a,#3a1210);border:1px solid var(--gold);border-radius:4px;cursor:pointer}
+button:active{filter:brightness(1.4)}
+button:disabled{opacity:.35}
+button.b{background:linear-gradient(#1f3a78,#142550)}
+button.g{background:linear-gradient(#3b3326,#241d14)}
+#info{font-size:13px;text-align:center;margin-bottom:6px;min-height:34px}
+#info b{color:var(--gold);font-size:15px}
+#msg{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:#000a;z-index:9}
+#msg div{background:var(--panel);border:2px solid var(--gold);padding:22px 28px;text-align:center;max-width:85%;border-radius:6px}
+#msg h2,#dip h2{margin:0 0 8px;color:var(--gold)}
+#menu{position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;background:radial-gradient(#4a3520,#0d0b08 75%)}
+#menu>div{text-align:center;display:flex;flex-direction:column;gap:10px;width:min(86%,340px)}
+#menu h1{color:var(--gold);font-size:30px;margin:0;letter-spacing:3px;text-shadow:0 2px 8px #000}#menu p,#menu h3{margin:0;font-size:12px;opacity:.85}#menu button{padding:13px;font-size:15px}
+button.on{box-shadow:0 0 0 2px #ffe27a;filter:brightness(1.3)}
+#mp{white-space:pre-line;font-size:13px;max-height:50vh;overflow:auto}
+#dip{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:#000a;z-index:8}
+#dip>div{background:var(--panel);border:2px solid var(--gold);padding:16px;width:min(92%,470px);max-height:82%;overflow:auto;border-radius:6px;text-align:center}
+.fr{display:flex;justify-content:space-between;align-items:center;gap:6px;margin:7px 0;font-size:12px;text-align:left}.fr i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}.fr button{padding:6px 8px;font-size:11px;margin-left:3px}
+</style></head><body>
+<canvas id="c"></canvas>
+<div id="top"><button class="g" style="padding:5px 9px;font-size:12px" onclick="leave()">☰ Menu</button><span>Or <b id="gold"></b></span><span>Tour <b id="turn"></b></span><span>Villes <b id="cnt"></b></span><button class="g" style="padding:5px 8px;font-size:12px" onclick="gens()">⭐ Généraux</button></div>
+<div class="bar" id="chud"><div id="info"></div>
+<div class="row"><button id="bAtk" class="b">⚔ Attaquer</button><button id="rI" class="g">+Inf 80</button><button id="rC" class="g">+Cav 120</button><button id="rA" class="g">+Canon 160</button><button class="g" onclick="dip()">🏛 Diplomatie</button><button class="g" id="zi">＋</button><button class="g" id="zo">－</button><button class="g" onclick="leave()">☰ Menu</button><button id="bEnd">Fin du tour</button></div></div>
+<div class="bar" id="bhud"><div id="binfo" class="row" style="font-size:12px;margin-bottom:6px"></div>
+<div class="row"><button id="bAs">⚔ Combat / Assaut</button><button id="bStop" class="g">Halte</button><button id="bAll" class="g">Tout sélectionner</button><button id="bRet" class="g">Retraite</button><button class="g" id="bz1">＋</button><button class="g" id="bz2">－</button><button class="g" id="bpm">✋ Carte</button><button class="g" id="bfit">🗺 Tout voir</button></div></div>
+<div id="menu"><div><h1>⚜ NAPOLÉON ⚜</h1><p>Empire d’Europe · 1805</p><div class="row" id="dfs" style="display:none"></div><button id="resume" class="g" style="display:none" onclick="resume()">▶ Reprendre la campagne</button><button id="nc" onclick="askLV(pick)">⚔ Campagne</button><button class="b" onclick="askLV(story)">📜 Mode histoire</button><button class="b" onclick="askLV(qStart)">Bataille rapide</button><button class="g" onclick="help()">Comment jouer</button></div></div><div id="dip"><div></div></div><div id="msg"><div><h2 id="mt"></h2><p id="mp"></p><button id="mb">Continuer</button> <button id="mb2" class="g" style="display:none" onclick="$('msg').style.display='none'">← Retour</button></div></div>
+<script>
+const C=document.getElementById('c'),X=C.getContext('2d'),$=id=>document.getElementById(id);
+let W,H,D=1;
+function rs(){D=devicePixelRatio||1;W=innerWidth;H=innerHeight;C.width=W*D;C.height=H*D;X.setTransform(D,0,0,D,0,0)}
+addEventListener('resize',rs);rs();
+const FR="2.5,51.05 1.6,50.9 1.6,50.2 1.5,49.8 0.9,49.9 0.1,49.7 0.2,49.4 -0.4,49.3 -1.1,49.4 -1.3,49.7 -1.9,49.7 -1.6,48.8 -2.2,48.7 -3.0,48.8 -3.6,48.7 -4.6,48.6 -4.7,48.3 -4.3,48.0 -3.5,47.8 -3.0,47.6 -2.4,47.3 -2.2,47.0 -1.9,46.7 -1.2,46.3 -1.2,45.6 -1.1,44.7 -1.3,44.0 -1.5,43.5 -1.8,43.4 -1.3,43.1 -0.7,43.2 0.6,42.8 1.0,42.7 1.7,42.5 2.5,42.4 3.1,42.4 3.2,43.0 3.9,43.4 4.5,43.4 5.0,43.4 5.4,43.2 5.9,43.1 6.4,43.2 6.7,43.1 7.0,43.5 7.5,43.8 7.1,44.1 6.9,44.4 7.1,44.7 6.8,45.1 7.0,45.5 6.8,45.9 7.0,46.4 6.1,46.2 6.1,46.4 6.5,46.5 6.9,47.0 7.0,47.5 7.5,47.6 7.6,48.0 7.7,48.6 8.2,48.97 7.5,49.05 6.4,49.45 5.8,49.5 5.5,49.5 4.9,50.1 4.2,49.95 3.6,50.4 3.2,50.8 2.5,51.05".split(' ').map(s=>s.split(',').map(Number));
+const CO=[[8.6,41.9],[8.7,42.4],[9.35,43.0],[9.5,42.5],[9.4,41.7],[9.0,41.4],[8.8,41.6]];
+const FAC={FR:["France","#2b4fa3"],UK:["Angleterre","#b5262b"],AU:["Autriche","#e8e4d0"],ES:["Espagne","#d9a520"],PR:["Prusse","#555b66"],BE:["Belgique","#7a3b9e"],IT:["Italie","#2e8b57"],RU:["Russie","#8a5a2b"],OT:["Empire ottoman","#c0306a"],SE:["Scandinavie","#2a8fb0"]};
+const CITIES=[["Paris",2.35,48.86,"FR",3],["Rouen",1.10,49.44,"FR",1],["Reims",4.03,49.26,"FR",1],["Dijon",5.04,47.32,"FR",1],["Lyon",4.83,45.76,"FR",3],["Limoges",1.26,45.83,"FR",1],["Nantes",-1.55,47.22,"FR",2],["Rennes",-1.68,48.11,"FR",1],
+["Lille",3.06,50.63,"PR",2],["Metz",6.18,49.12,"PR",2],["Strasbourg",7.75,48.58,"PR",2],["Brest",-4.49,48.39,"UK",2],["Bordeaux",-0.58,44.84,"UK",3],["Toulon",5.93,43.12,"UK",2],
+["Grenoble",5.72,45.19,"AU",1],["Nice",7.26,43.70,"AU",1],["Marseille",5.37,43.30,"AU",3],["Toulouse",1.44,43.60,"ES",2],["Perpignan",2.90,42.70,"ES",1],["Montpellier",3.88,43.61,"ES",2],["Londres",-0.13,51.5,"UK",3],["Édimbourg",-3.19,55.95,"UK",1],["Dublin",-6.26,53.35,"UK",1],["Madrid",-3.7,40.4,"ES",3],["Barcelone",2.17,41.4,"ES",2],["Séville",-5.98,37.4,"ES",2],["Lisbonne",-9.14,38.7,"ES",2],["Bruxelles",4.35,50.85,"BE",2],["Anvers",4.4,51.2,"BE",1],["Berlin",13.4,52.5,"PR",3],["Hambourg",10.0,53.55,"PR",2],["Cologne",6.96,50.94,"PR",1],["Vienne",16.37,48.2,"AU",3],["Prague",14.4,50.08,"AU",2],["Munich",11.58,48.14,"AU",1],["Milan",9.19,45.46,"IT",2],["Venise",12.1,45.5,"IT",1],["Rome",12.5,41.9,"IT",3],["Naples",14.27,40.85,"IT",2],["Varsovie",21.0,52.23,"RU",2],["Moscou",37.6,55.75,"RU",3],["Saint-Pétersbourg",30.3,59.9,"RU",2],["Constantinople",28.98,41.0,"OT",3],["Athènes",23.7,38.0,"OT",1],["Stockholm",18.07,59.33,"SE",2],["Copenhague",12.57,55.68,"SE",2],["Orléans",1.9,47.9,"FR",1],["Tours",0.69,47.39,"FR",1],["Clermont",3.08,45.78,"FR",1],["Caen",-0.37,49.18,"UK",1],["Cherbourg",-1.62,49.64,"UK",1],["La Rochelle",-1.15,46.16,"UK",1],["Amiens",2.3,49.9,"PR",1],["Nancy",6.18,48.69,"PR",1],["Besançon",6.02,47.24,"AU",1],["Avignon",4.81,43.95,"AU",1],["Pau",-0.37,43.3,"ES",1],["Ajaccio",8.74,41.92,"IT",1],["Bastia",9.45,42.7,"IT",1],["Liverpool",-2.99,53.41,"UK",1],["Birmingham",-1.9,52.48,"UK",2],["Cork",-8.47,51.9,"UK",1],["Porto",-8.61,41.15,"ES",1],["Valence",-0.38,39.47,"ES",1],["Saragosse",-0.89,41.65,"ES",1],["Grenade",-3.6,37.18,"ES",1],["Amsterdam",4.9,52.37,"BE",2],["Gand",3.72,51.05,"BE",1],["Francfort",8.68,50.11,"PR",1],["Dresde",13.74,51.05,"PR",1],["Königsberg",20.5,54.7,"PR",1],["Breslau",17.03,51.1,"AU",1],["Budapest",19.04,47.5,"AU",2],["Zurich",8.54,47.38,"AU",1],["Gênes",8.93,44.41,"IT",2],["Turin",7.69,45.07,"IT",1],["Florence",11.25,43.77,"IT",1],["Palerme",13.36,38.12,"IT",1],["Cracovie",19.94,50.06,"RU",1],["Kiev",30.52,50.45,"RU",2],["Minsk",27.56,53.9,"RU",1],["Riga",24.1,56.95,"RU",1],["Smolensk",32.05,54.78,"RU",1],["Odessa",30.72,46.48,"RU",1],["Belgrade",20.46,44.8,"OT",2],["Salonique",22.94,40.64,"OT",1],["Bucarest",26.1,44.43,"OT",2],["Smyrne",27.14,38.42,"OT",1],["Ankara",32.85,39.93,"OT",1],["Gothembourg",11.97,57.7,"SE",1],["Oslo",10.75,59.91,"SE",1],["Helsinki",24.94,60.17,"SE",1],["Saint-Étienne",4.39,45.44,"FR",1],["Le Mans",0.2,48,"FR",1],["Angers",-0.55,47.47,"FR",1],["Poitiers",0.34,46.58,"FR",1],["Troyes",4.08,48.3,"FR",1],["Le Havre",0.11,49.49,"UK",1],["Saint-Malo",-2,48.65,"UK",1],["Lorient",-3.37,47.75,"UK",1],["Calais",1.86,50.95,"UK",1],["Bayonne",-1.47,43.49,"ES",1],["Carcassonne",2.35,43.21,"ES",1],["Nîmes",4.36,43.84,"ES",1],["Chambéry",5.92,45.57,"AU",1],["Mulhouse",7.34,47.75,"AU",1],["Valenciennes",3.52,50.36,"PR",1],["Dunkerque",2.38,51.03,"PR",1],["Colmar",7.36,48.08,"PR",1],["Glasgow",-4.25,55.86,"UK",1],["Newcastle",-1.61,54.98,"UK",1],["Manchester",-2.24,53.48,"UK",2],["Plymouth",-4.14,50.37,"UK",1],["Belfast",-5.93,54.6,"UK",1],["Valladolid",-4.72,41.65,"ES",1],["Murcie",-1.13,37.98,"ES",1],["Malaga",-4.42,36.72,"ES",1],["Oviedo",-5.85,43.36,"ES",1],["La Corogne",-8.4,43.37,"ES",1],["Rotterdam",4.48,51.92,"BE",1],["Liège",5.57,50.63,"BE",1],["Düsseldorf",6.77,51.23,"PR",1],["Brême",8.8,53.08,"PR",1],["Hanovre",9.73,52.37,"PR",1],["Leipzig",12.37,51.34,"PR",1],["Stettin",14.55,53.43,"PR",1],["Dantzig",18.65,54.35,"PR",1],["Posen",16.93,52.4,"PR",1],["Nuremberg",11.08,49.45,"AU",1],["Stuttgart",9.18,48.78,"AU",1],["Salzbourg",13.05,47.8,"AU",1],["Graz",15.44,47.07,"AU",1],["Brno",16.6,49.2,"AU",1],["Presbourg",17.1,48.15,"AU",1],["Zagreb",15.98,45.8,"AU",1],["Trieste",13.77,45.65,"AU",1],["Bologne",11.34,44.5,"IT",1],["Bari",16.87,41.12,"IT",1],["Cagliari",9.11,39.22,"IT",1],["Catane",15.09,37.5,"IT",1],["Lviv",24.03,49.84,"RU",1],["Kharkiv",36.23,49.99,"RU",1],["Voronège",39.2,51.67,"RU",1],["Tver",35.9,56.86,"RU",1],["Novgorod",31.27,58.52,"RU",1],["Vilnius",25.28,54.69,"RU",1],["Tallinn",24.75,59.44,"RU",1],["Sofia",23.32,42.7,"OT",1],["Sarajevo",18.41,43.86,"OT",1],["Skopje",21.43,42,"OT",1],["Varna",27.92,43.2,"OT",1],["Bursa",29.06,40.18,"OT",1],["Bergen",5.33,60.39,"SE",1],["Trondheim",10.4,63.43,"SE",1],["Malmö",13,55.6,"SE",1],["Turku",22.27,60.45,"SE",1]].map(a=>({n:a[0],lo:a[1],la:a[2],o:a[3],s:a[4]}));
+let G={gold:600,turn:1,army:{i:8,c:3,a:3},sel:null,mode:'camp',t:0};
+const TOT=a=>a.i+a.c+a.a;
+const cam={lo:3,la:47,z:1.8},sc=()=>Math.min(W/34,(H-190)/27)*cam.z;
+function pr(lo,la){const s=sc(),cy=(44+H-120)/2+6;return[W/2+(lo-cam.lo)*.66*s,cy-(la-cam.la)*s]}
+const dd=(a,b)=>Math.hypot((a.lo-b.lo)*.68,a.la-b.la);
+const reach=c=>c.o!=='FR'&&DIP[c.o]==='war'&&(G.story?G.story.obj===c.n:CITIES.some(m=>m.o==='FR'&&dd(m,c)<7.5));
+function poly(pts,fill,stroke){X.beginPath();pts.forEach((p,i)=>{const q=pr(p[0],p[1]);i?X.lineTo(q[0],q[1]):X.moveTo(q[0],q[1])});X.closePath();X.fillStyle=fill;X.fill();X.strokeStyle=stroke;X.lineWidth=2;X.stroke()}
+function drawCamp(){
+ const g=X.createLinearGradient(0,0,0,H);g.addColorStop(0,'#2f4e61');g.addColorStop(1,'#1c3140');X.fillStyle=g;X.fillRect(0,0,W,H);
+ X.save();X.shadowColor='#000';X.shadowBlur=14;EUP.forEach(p=>poly(p,'#c7b684','#4a3a1c'));X.restore();
+ X.save();X.clip();X.restore();
+ poly(FR,'#e3d19c','#2a1d08');poly(CO,'#e3d19c','#2a1d08');
+ X.save();X.beginPath();const ar=p=>p.reduce((s,q,i)=>{const n=p[(i+1)%p.length];return s+q[0]*n[1]-n[0]*q[1]},0);
+ for(const p of EUP.concat([FR,CO])){const v=ar(p)<0?p.slice().reverse():p;v.forEach((q,i)=>{const z=pr(q[0],q[1]);i?X.lineTo(z[0],z[1]):X.moveTo(z[0],z[1])});X.closePath()}X.clip();
+ X.imageSmoothingEnabled=true;terr2();
+ X.restore();poly(FR,'#0000','#2a1d08');details();
+ X.fillStyle='#9fb6c4';X.font='italic 12px Georgia';X.textAlign='center';
+ let p=pr(-3.3,50.4);X.fillText('Manche',p[0],p[1]);p=pr(-3.4,45.5);X.fillText('Océan Atlantique',p[0],p[1]);p=pr(5.5,42.2);X.fillText('Méditerranée',p[0],p[1]);
+ X.strokeStyle='#8a7544aa';X.setLineDash([4,5]);X.lineWidth=1.2;
+ for(const a of CITIES)for(const b of CITIES)if(a<b&&dd(a,b)<1.9){const A=pr(a.lo,a.la),B=pr(b.lo,b.la);X.beginPath();X.moveTo(...A);X.lineTo(...B);X.stroke()}
+ X.setLineDash([]);
+ const t=Date.now()/400;
+ for(const c of CITIES){const[x,y]=pr(c.lo,c.la),f=FAC[c.o],r=4+c.s*2.2;
+  if(reach(c)){X.strokeStyle='#ff5040';X.lineWidth=2;X.beginPath();X.arc(x,y,r+5+Math.sin(t)*2,0,7);X.stroke()}
+  if(G.sel===c){X.strokeStyle='#ffd84a';X.lineWidth=3;X.beginPath();X.arc(x,y,r+7,0,7);X.stroke()}
+  X.fillStyle=f[1];X.strokeStyle='#14110d';X.lineWidth=2;X.beginPath();X.arc(x,y,r,0,7);X.fill();X.stroke();
+  X.fillStyle=c.o==='AU'?'#222':'#fff';X.font='bold 10px Cinzel,serif';X.fillText(c.s===3?'★':c.s===2?'■':'●',x,y+3);
+  if(c.s>1||cam.z>2.3||G.sel===c){X.font='bold 11px Cinzel,serif';X.fillStyle='#fff';X.strokeStyle='#14110d';X.lineWidth=3;X.strokeText(c.n,x,y+r+13);X.fillText(c.n,x,y+r+13)}}
+}
+function ui(){$('gold').textContent=G.gold;$('turn').textContent=G.turn;$('cnt').textContent=CITIES.filter(c=>c.o==='FR').length+'/'+CITIES.length;
+ const c=G.sel,a=G.army;let h=`Armée : <b>${a.i}</b> inf · <b>${a.c}</b> cav · <b>${a.a}</b> canons<br>`;
+ h+=c?`<b>${c.n}</b> — ${FAC[c.o][0]} (taille ${c.s})${c.o!=='FR'?' · '+{war:'Guerre',peace:'Paix',ally:'Allié'}[DIP[c.o]]+(DIP[c.o]==='war'&&!reach(c)?' · hors de portée':''):''}`:'Sélectionnez une ville';
+ $('info').innerHTML=h+(G.atk?'<br><i>Attaque déjà effectuée ce tour</i>':'')+(G.story?'<br>🎯 Objectif : '+G.story.obj:'');$('bAtk').disabled=!(c&&reach(c)&&TOT(a)>0&&!G.atk);
+ const full=TOT(a)>=20;$('rI').disabled=G.gold<80||full;$('rC').disabled=G.gold<120||full;$('rA').disabled=G.gold<160||full}
+function msg(t,p,cb,back){$('mt').textContent=t;$('mp').textContent=p;$('msg').style.display='flex';$('mb2').style.display=back?'inline-block':'none';$('mb').textContent=back?'Fin du tour':'Continuer';$('mb').onclick=()=>{$('msg').style.display='none';cb&&cb()}}
+$('rI').onclick=()=>{G.gold-=80;G.army.i++;ui()};$('rC').onclick=()=>{G.gold-=120;G.army.c++;ui()};$('rA').onclick=()=>{G.gold-=160;G.army.a++;ui()};
+$('bEnd').onclick=()=>msg('Conseil','Rechargez vos unités avant une attaque ennemie !',endTurn,1);const oldEnd=()=>{G.turn++;const al=Object.values(DIP).filter(v=>v==='ally').length;G.gold+=Math.round((50+25*CITIES.filter(c=>c.o==='FR').length+30*al)*DF[LV].inc);let m='';for(const f in DIP)if(DIP[f]==='peace'&&Math.random()<.04&&CITIES.some(c=>c.o===f)){DIP[f]='war';m=FAC[f][0]+' vous déclare la guerre !'}ui();if(m)msg('Diplomatie',m)};
+$('bAtk').onclick=()=>{G.atk=1;G.pf=null;G.df=0;G.pw=null;startBattle(G.sel)};
+/* ---------- BATAILLE ---------- */
+const TY={i:{n:'Infanterie',hp:100,sp:42,r:105,dps:3.2,m:5,rad:20},c:{n:'Cavalerie',hp:60,sp:110,r:46,dps:0,m:12,rad:22},a:{n:'Artillerie',hp:30,sp:22,r:330,dps:8,m:2,rad:16}};
+let U=[],P=[],B=null,box=null,bt=0,TREES=[],DEAD=[];
+const BW=1700,BH=1000;let bz={z:1.7,x:850,y:720};
+function mk(team,t,x,y,fac){return{team,t,x,y,hp:TY[t].hp,mx:TY[t].hp,cmd:'idle',tg:null,tx:x,ty:y,ang:team?Math.PI/2:-Math.PI/2,sel:false,fac,cd:0}}
+function startBattle(city){
+ G.mode='battle';B={city,fac:G.pf||city.o,def:G.df};U=[];P=[];DEAD=[];bt=0;bz.z=1;bz.x=BW/2;bz.y=BH/2;G.pm=0;$('bpm').classList.remove('on');
+ const a=G.army,g=Math.min(8,G.pw!=null?G.pw:city.s+DF[LV].eg+(city.g||0)+Math.floor(G.turn/8)),ne={i:3+g+Math.floor(g/2),c:1+(g>1?1:0)+(g>3?1:0),a:1+(g>1?1:0)+(g>3?1:0)};
+ const lay=(team,n,t,y,fac)=>{for(let k=0;k<n;k++)U.push(mk(team,t,BW/2+(k-(n-1)/2)*(t==='c'?84:62)*(n>8?.8:1),y,fac))};
+ lay(0,a.i,'i',850,'FR');lay(0,a.c,'c',930,'FR');lay(0,a.a,'a',900,'FR');
+ lay(1,ne.i,'i',150,B.fac);lay(1,ne.c,'c',90,B.fac);lay(1,ne.a,'a',60,B.fac);
+ const na=G.qm?0:Math.min(3,Object.values(DIP).filter(v=>v==='ally').length);if(na){const k=U.length;lay(0,na*2,'i',890,'FR');for(let q=k;q<U.length;q++)U[q].al=1}
+ for(const u of U.filter(u=>u.t==='a'&&!u.team))u.y=965;
+ TREES=[];let s=7;const rn=()=>(s=s*16807%2147483647)/2147483647;for(let k=0;k<55;k++)TREES.push([rn()*BW,250+rn()*500,8+rn()*10]);
+ for(const u of U)if(!u.team&&!u.al){const m=gmul(u.t);u.hp*=m.h;u.mx=u.hp;u.gd=m.d;u.gs=m.s}
+ $('chud').style.display='none';$('bhud').style.display='block';
+}
+function endBattle(win){if(B&&B.q2){B=null;G.qm=0;G.pw=null;$('bhud').style.display='none';$('chud').style.display='block';G.mode='menu';
+ if(win){QL++;return msg('Victoire !','Niveau '+(QL-1)+' réussi ! Niveau '+QL+' : plus d’or, mais des ennemis plus forts.',qPrep)}
+ const best=Math.max(QL,+(getBest()||0));setBest(best);qRestore();return msg('Défaite','Vous avez atteint le niveau '+QL+'.\nMeilleur niveau : '+best,showMenu)}if(B&&B.def){const c=B.city,f=B.fac,a={i:0,c:0,a:0};for(const u of U)if(!u.team&&u.hp>0&&!u.al)a[u.t]++;G.mode='camp';$('bhud').style.display='none';$('chud').style.display='block';B=null;G.df=0;G.pf=null;G.pw=null;
+ if(win){G.army=TOT(a)?a:{i:1,c:0,a:0};G.gold+=500;return msg('Ville défendue',c.n+' résiste à '+FAC[f][0]+'. +500 or.',nextDef)}
+ c.o=f;c.g=0;G.army={i:Math.max(2,a.i),c:Math.max(1,a.c),a:Math.max(1,a.a)};return msg('Ville perdue',c.n+' tombe aux mains de '+FAC[f][0]+'.',nextDef)}if(B&&B.quick){G.mode='menu';B=null;if(G.sv)G.army=G.sv;$('bhud').style.display='none';$('chud').style.display='block';return msg(win?'Victoire !':'Défaite','Bataille rapide terminée.',showMenu)}
+ const a={i:0,c:0,a:0};for(const u of U)if(!u.team&&u.hp>0&&!u.al)a[u.t]++;
+ G.mode='camp';$('bhud').style.display='none';$('chud').style.display='block';
+ if(win){B.city.o='FR';B.city.g=0;G.gold+=500;CN=B.city.n;G.army=TOT(a)?a:{i:1,c:0,a:0};
+  if(CITIES.every(c=>c.o==='FR'||DIP[c.o]==='ally'))return msg('VIVE L’EMPEREUR !','L’Europe est à vos pieds. Victoire totale !',()=>showMenu());
+  msg('Victoire !',B.city.n+' est conquise. +500 or.',()=>{G.sel=null;ui();storyChk(CN)})}
+ else{G.army={i:Math.max(2,a.i),c:Math.max(1,a.c),a:Math.max(1,a.a)};msg('Défaite','Votre armée se replie en désordre.',()=>ui())}
+ B=null
+}
+const S2W=(x,y)=>{const k=bk();return[(x-k.ox)/k.s,(y-k.oy)/k.s]};
+function bk(){const top=44,bot=120,fit=Math.min(W/BW,(H-top-bot)/BH),s=fit*bz.z;return{s,ox:W/2-bz.x*s,oy:top+(H-top-bot)/2-bz.y*s}}
+const alive=t=>U.filter(u=>u.hp>0&&u.team===t);
+function near(u,l,m=1e9){let b=null,bd=m;for(const o of l){const d=Math.hypot(o.x-u.x,o.y-u.y);if(d<bd){bd=d;b=o}}return b}
+function upd(dt){
+ bt+=dt;const en=alive(1),pl=alive(0);
+ if(!en.length)return endBattle(true);if(!pl.length)return endBattle(false);
+ for(const u of U){if(u.hp<=0)continue;const T=TY[u.t],foes=u.team?pl:en;
+  if(u.team&&u.cmd==='idle'&&bt>1.5&&u.t!=='a')u.cmd='assault';
+  if(u.team&&u.t==='a'&&!near(u,foes,T.r)&&bt>3){u.cmd='assault'}
+  let tg=u.tg&&u.tg.hp>0?u.tg:null;
+  if(u.cmd==='assault'&&!tg)tg=u.tg=near(u,foes);
+  if(u.cmd==='attack'&&!tg){u.cmd='idle'}
+  const mv=(x,y,sp)=>{const dx=x-u.x,dy=y-u.y,d=Math.hypot(dx,dy);if(d<2)return true;const st=Math.min(d,sp*dt);u.x+=dx/d*st;u.y+=dy/d*st;u.ang=ang(u.ang,Math.atan2(dy,dx),dt*6);return false};
+  let target=null;
+  if(tg&&(u.cmd==='attack'||u.cmd==='assault')){const d=Math.hypot(tg.x-u.x,tg.y-u.y);
+   if(d>T.r*.85)mv(tg.x,tg.y,T.sp*(u.gs||1)*(u.cmd==='assault'?1.35:1));else target=tg}
+  else if(u.cmd==='move'){if(mv(u.tx,u.ty,T.sp*(u.gs||1)))u.cmd='idle'}
+  else{target=near(u,foes,T.r)}
+  if(target){const d=Math.hypot(target.x-u.x,target.y-u.y);u.ang=ang(u.ang,Math.atan2(target.y-u.y,target.x-u.x),dt*8);
+   const ml=d<46,dps=ml?T.m:(d<=T.r?T.dps:0);
+   if(dps>0){target.hp-=dps*dt*(.6+Math.random()*.8)*(u.team?DF[LV].ed:DF[LV].pd)*(u.gd||1);u.cd-=dt;
+    if(!ml&&u.cd<=0){u.cd=.5+Math.random()*.8;P.push({x:u.x+Math.cos(u.ang)*20,y:u.y+Math.sin(u.ang)*20,r:4,a:.8,vx:Math.cos(u.ang)*14,vy:Math.sin(u.ang)*14,sh:u.t==='a'?1:0,tx:target.x,ty:target.y})}}}
+ }
+ for(const u of U)if(u.hp<=0&&!u.dead){u.dead=1;DEAD.push({x:u.x,y:u.y,ang:u.ang,t:u.t,col:u.team?FAC[u.fac][1]:FAC.FR[1],age:0})}for(const d of DEAD)d.age+=dt;DEAD=DEAD.filter(d=>d.age<3);
+ for(let i=0;i<U.length;i++){const a=U[i];if(a.hp<=0)continue;for(let j=i+1;j<U.length;j++){const b=U[j];if(b.hp<=0)continue;
+  const dx=b.x-a.x,dy=b.y-a.y,d=Math.hypot(dx,dy)||1,m=(TY[a.t].rad+TY[b.t].rad)*(a.team===b.team?1:.9);
+  if(d<m){const p=(m-d)*.25;a.x-=dx/d*p;a.y-=dy/d*p;b.x+=dx/d*p;b.y+=dy/d*p}}}
+ for(const p of P){p.x+=p.vx*dt;p.y+=p.vy*dt;p.r+=dt*10;p.a-=dt*.7}P=P.filter(p=>p.a>0);
+ const f=near({x:0,y:0},[]);
+ const sc=U.filter(u=>u.sel&&u.hp>0).length;
+ $('binfo').innerHTML=`<span style="color:#7da0ff">Vous : <b>${pl.reduce((s,u)=>s+Math.ceil(u.hp),0)}</b> hommes</span><span style="color:#ff8070">Ennemi : <b>${en.reduce((s,u)=>s+Math.ceil(u.hp),0)}</b> hommes</span><span>Sélection : <b>${sc}</b></span>`;
+}
+function ang(a,b,k){let d=b-a;while(d>Math.PI)d-=2*Math.PI;while(d<-Math.PI)d+=2*Math.PI;return a+d*Math.min(1,k)}
+function drawBattle(){
+ const k=bk();
+ X.fillStyle='#1a2412';X.fillRect(0,0,W,H);
+ X.save();X.translate(k.ox,k.oy);X.scale(k.s,k.s);
+ const g=X.createLinearGradient(0,0,0,BH);g.addColorStop(0,'#5d7a3a');g.addColorStop(.5,'#6f8d45');g.addColorStop(1,'#587535');
+ X.fillStyle=g;X.fillRect(0,0,BW,BH);X.strokeStyle='#d4af37';X.lineWidth=3;X.strokeRect(0,0,BW,BH);
+ X.fillStyle='#4a6a2a55';for(let i=0;i<150;i++){X.beginPath();X.arc((i*173)%BW,(i*97)%BH,14+(i%5)*4,0,7);X.fill()}
+ for(const t of TREES){X.fillStyle='#2e4a1e';X.beginPath();X.arc(t[0],t[1],t[2],0,7);X.fill();X.fillStyle='#3d5f27';X.beginPath();X.arc(t[0]-2,t[1]-2,t[2]*.6,0,7);X.fill()}
+ for(const u of U){if(u.hp<=0)continue;if(u.cmd==='move'&&!u.team&&u.sel){X.strokeStyle='#ffe27a';X.setLineDash([4,4]);X.lineWidth=1.5;X.beginPath();X.moveTo(u.x,u.y);X.lineTo(u.tx,u.ty);X.stroke();X.setLineDash([]);X.beginPath();X.arc(u.tx,u.ty,5,0,7);X.stroke()}}
+ for(const d of DEAD)drawDead(d);for(const u of U){if(u.hp<=0)continue;drawU(u)}
+ for(const p of P){X.globalAlpha=Math.max(0,p.a);X.fillStyle=p.sh?'#ddd':'#bbb';X.beginPath();X.arc(p.x,p.y,p.r,0,7);X.fill()}X.globalAlpha=1;
+ if(box){const a=S2W(box[0],box[1]),b=S2W(box[2],box[3]);X.strokeStyle='#ffe27a';X.fillStyle='#ffe27a22';X.lineWidth=1.5;X.fillRect(a[0],a[1],b[0]-a[0],b[1]-a[1]);X.strokeRect(a[0],a[1],b[0]-a[0],b[1]-a[1])}
+ X.restore();
+}
+function drawDead(d){const p=Math.min(1,d.age/1.1),al=d.age<2.4?.9:Math.max(0,.9*(3-d.age)/.6);X.save();X.globalAlpha=al;
+ for(const s of[-1,1]){X.save();X.translate(d.x,d.y);X.rotate(d.ang+Math.PI/2);X.translate(s*p*9,s*p*2);X.rotate(s*p*.3);X.fillStyle=d.col;X.strokeStyle='#10100c';X.lineWidth=2;X.beginPath();
+  if(d.t==='a'){X.arc(0,0,15,s<0?Math.PI/2:-Math.PI/2,s<0?Math.PI*1.5:Math.PI/2);X.closePath()}else{const w=d.t==='i'?36:54,h=d.t==='i'?36:22;X.rect(s<0?-w/2:0,-h/2,w/2,h)}
+  X.fill();X.stroke();X.strokeStyle='#9b1c1c';X.lineWidth=2.5;const h2=d.t==='a'?15:(d.t==='i'?18:11);X.beginPath();X.moveTo(0,-h2);X.lineTo(0,h2);X.stroke();X.restore()}X.restore()}
+function drawU(u){
+ const col=u.team?FAC[u.fac][1]:FAC.FR[1];
+ X.save();X.translate(u.x,u.y);
+ if(u.sel){X.shadowColor='#ffe27a';X.shadowBlur=14}
+ X.rotate(u.ang+Math.PI/2);X.lineWidth=u.sel?3:2;X.strokeStyle=u.sel?'#ffe27a':'#10100c';X.fillStyle=col;
+ if(u.t==='i'){X.fillRect(-18,-18,36,36);X.strokeRect(-18,-18,36,36);X.fillStyle='#ffffff33';for(let r=0;r<3;r++)for(let c=0;c<3;c++)X.fillRect(-13+c*10,-13+r*10,6,6)}
+ else if(u.t==='c'){X.fillRect(-27,-11,54,22);X.strokeRect(-27,-11,54,22);X.fillStyle='#ffffff44';X.fillRect(-23,-3,46,6)}
+ else{X.beginPath();X.arc(0,0,15,0,7);X.fill();X.stroke();X.fillStyle='#111';X.fillRect(-2.5,-22,5,18);X.beginPath();X.arc(0,2,5,0,7);X.fill()}
+ X.restore();
+ X.fillStyle='#000a';X.fillRect(u.x-18,u.y-30,36,5);X.fillStyle=u.hp/u.mx>.5?'#5ed15e':u.hp/u.mx>.25?'#e6c23a':'#e0463a';X.fillRect(u.x-18,u.y-30,36*Math.max(0,u.hp/u.mx),5);
+ X.fillStyle='#fff';X.font='bold 10px Cinzel,serif';X.textAlign='center';X.fillText(Math.ceil(u.hp),u.x,u.y-34)
+}
+/* ---------- entrées ---------- */
+let down=null,lp=null,pan=0;
+C.addEventListener('pointerdown',e=>{down=[e.clientX,e.clientY];lp=null;pan=0;C.setPointerCapture(e.pointerId)});
+C.addEventListener('pointermove',e=>{if(!down)return;const far=Math.hypot(e.clientX-down[0],e.clientY-down[1])>9;if(G.mode==='camp'){if(far){const q=lp||down;cam.lo-=(e.clientX-q[0])/(.66*sc());cam.la+=(e.clientY-q[1])/sc();pan=1;lp=[e.clientX,e.clientY]}}else if(far){if(G.pm){const q=lp||down,k=bk();bz.x=Math.max(0,Math.min(BW,bz.x-(e.clientX-q[0])/k.s));bz.y=Math.max(0,Math.min(BH,bz.y-(e.clientY-q[1])/k.s));pan=1;lp=[e.clientX,e.clientY]}else box=[down[0],down[1],e.clientX,e.clientY]}});
+C.addEventListener('pointerup',e=>{
+ if(!down)return;const moved=Math.hypot(e.clientX-down[0],e.clientY-down[1])>9,x=e.clientX,y=e.clientY;
+ if(G.mode==='camp'){if(!pan){let b=null,bd=24;for(const c of CITIES){const p=pr(c.lo,c.la),d=Math.hypot(p[0]-x,p[1]-y);if(d<bd){bd=d;b=c}}G.sel=b;ui()}}
+ else if(G.mode==='battle'&&pan){}
+ else if(box&&moved){const a=S2W(box[0],box[1]),b=S2W(x,y),x1=Math.min(a[0],b[0]),x2=Math.max(a[0],b[0]),y1=Math.min(a[1],b[1]),y2=Math.max(a[1],b[1]);
+  for(const u of alive(0))u.sel=u.x>=x1&&u.x<=x2&&u.y>=y1&&u.y<=y2}
+ else if(G.mode==='battle'){
+  const w=S2W(x,y),hit=l=>l.find(u=>Math.hypot(u.x-w[0],u.y-w[1])<TY[u.t].rad+10);
+  const own=hit(alive(0)),foe=hit(alive(1)),sel=alive(0).filter(u=>u.sel);
+  if(own){for(const u of alive(0))u.sel=u===own}
+  else if(sel.length&&foe){for(const u of sel){u.cmd='attack';u.tg=foe}}
+  else if(sel.length){const n=sel.length,cols=Math.ceil(Math.sqrt(n*1.6));sel.forEach((u,i)=>{u.cmd='move';u.tg=null;u.tx=Math.max(20,Math.min(BW-20,w[0]+((i%cols)-(cols-1)/2)*58));u.ty=Math.max(20,Math.min(BH-20,w[1]+Math.floor(i/cols)*58))})}
+ }
+ box=null;down=null});
+$('bAs').onclick=()=>{for(const u of alive(0))if(u.sel){u.cmd='assault';u.tg=null}};
+$('bStop').onclick=()=>{for(const u of alive(0))if(u.sel){u.cmd='idle';u.tg=null}};
+$('bAll').onclick=()=>{for(const u of alive(0))u.sel=true};
+$('bRet').onclick=()=>endBattle(false);
+let last=performance.now();
+function loop(n){const dt=Math.min(.05,(n-last)/1000);last=n;
+ if(G.mode==='battle'){upd(dt);if(G.mode==='battle')drawBattle()}else drawCamp();requestAnimationFrame(loop)}
+const P2=s=>s.split(' ').map(x=>x.split(',').map(Number));
+const EUP=["2.5,51.05 3.4,51.4 4,51.9 4.7,53 6.5,53.6 8.5,53.9 8.6,55.6 9.9,57 10.6,57.6 10.5,55.2 12,54.6 14,54 18.5,54.7 21,55.3 21.2,57 24,57.2 24.5,59.4 30,60 42,60 42,46 38,47 35,45 33,46 30,46 29,45 28,43 28.5,41.5 26,40.5 24,40.8 23.5,38 22,36.5 21,38 19.5,40 19.5,42 18,43 15.5,45 14,45 13.5,45.7 12.3,45.3 12.5,44 14,42.5 16,41.5 18.5,40.2 17,39 16.5,38 15.7,38 16,39.6 15,40 13,41.3 11,42.6 10.2,43.9 8.9,44.4 7.5,43.8 3.2,42.4 0.5,40.5 -0.3,39.5 0.2,38.7 -0.7,37.6 -2.1,36.7 -4.4,36.7 -5.6,36 -6.3,36.8 -7.4,37.2 -8.9,37 -9.5,38.7 -8.8,41.5 -9,43 -8,43.7 -1.8,43.4 -1.5,43.5 -1.2,45.6 -1.2,46.3 -2.4,47.3 -4.7,48.3 -4.5,48.6 -2,48.7 -1.5,49.7 0.1,49.7 1.5,50.2","-5.7,50 -3.5,50.4 1.4,51.1 1.7,52.7 0.2,53.5 -0.2,54.8 -1.7,55.9 -2,57.6 -3.5,58.6 -5.1,58.5 -5.8,57.3 -5.4,55.8 -4.9,54.7 -3,54.9 -3.2,53.4 -4.6,53.3 -4.1,52.4 -5.2,51.7 -3.2,51.4 -4.5,51","-10,51.8 -6.2,52.2 -6,54 -5.5,54.5 -7.3,55.3 -9,54.2 -10,53.5","5.5,58.5 5,62 8,63.5 12,66 16,68.5 20,69.5 24,68.5 25,65.5 28,66 30,63 30,61 28,60.5 23,60.2 19.5,60 18.8,59.2 17.9,58.5 16.5,56.2 14.2,55.5 12.6,55.3 12.5,56.2 11.5,58.8 10.5,59.5 8,58.1","12.4,38.1 15.6,38.3 15.1,36.8 13,37.5","8.2,40.9 9.7,40.9 9.6,39.2 8.5,39","26.5,40.5 28.5,41.5 32,41.5 36,41.8 41,41 42,38 42,36.5 36,36.5 30,36.5 27,37"].map(P2);
+const DIP={UK:'war',ES:'war',PR:'war',AU:'war',BE:'peace',IT:'peace',RU:'peace',OT:'peace',SE:'peace'};
+let note='';
+const closeDip=()=>{$('dip').style.display='none'};
+function dip(){let h='<h2>Diplomatie</h2>'+(note?'<p style="font-size:12px">'+note+'</p>':'');for(const f in DIP){const n=CITIES.filter(c=>c.o===f).length;if(!n)continue;const s=DIP[f];h+=`<div class="fr"><span><i style="background:${FAC[f][1]}"></i><b>${FAC[f][0]}</b> · ${n} villes · ${{war:'Guerre',peace:'Paix',ally:'Allié'}[s]}</span><span>`+(s==='war'?`<button onclick="dp('${f}','p')">Paix 100</button>`:'')+(s==='peace'?`<button class="b" onclick="dp('${f}','a')">Alliance 250</button>`:'')+(s!=='war'?`<button onclick="dp('${f}','w')">Guerre</button>`:'')+'</span></div>'}h+='<p style="font-size:11px;opacity:.7">Un allié verse 30 or par tour et envoie des renforts en bataille.</p><button class="g" onclick="closeDip()">Fermer</button>';$('dip').firstElementChild.innerHTML=h;$('dip').style.display='flex'}
+function dp(f,a){const ch=Math.min(.85,.4+.015*CITIES.filter(c=>c.o==='FR').length);
+ if(a==='w'){DIP[f]='war';note=FAC[f][0]+' : guerre déclarée !'}
+ else{const k=a==='p'?100:250;if(G.gold<k)note='Pas assez d’or.';else{G.gold-=k;if(Math.random()<ch){DIP[f]=a==='p'?'peace':'ally';note=FAC[f][0]+(a==='p'?' accepte la paix.':' devient votre allié !')}else note=FAC[f][0]+' refuse votre offre.'}}
+ ui();dip()}
+$('zi').onclick=()=>{cam.z=Math.min(6,cam.z*1.4)};$('zo').onclick=()=>{cam.z=Math.max(.8,cam.z/1.4)};
+C.addEventListener('wheel',e=>{if(G.mode==='camp')cam.z=Math.max(.8,Math.min(6,cam.z*(e.deltaY<0?1.15:.87)))});
+const rgbOf=f=>{const c=FAC[f][1];return[parseInt(c.slice(1,3),16),parseInt(c.slice(3,5),16),parseInt(c.slice(5,7),16)]};
+let TC=null,tk='';
+function terr(){const k=W*H>600000?3:2,w=Math.ceil(W/k),h=Math.ceil(H/k),key=[w,h,cam.lo.toFixed(2),cam.la.toFixed(2),cam.z.toFixed(2),CITIES.map(c=>c.o).join('')].join();
+ if(key!==tk||!TC){tk=key;const cv=TC||(TC=document.createElement('canvas'));cv.width=w;cv.height=h;cv.k=k;const g=cv.getContext('2d'),im=g.createImageData(w,h),d=im.data,pts=CITIES.map(c=>{const p=pr(c.lo,c.la);return[p[0]/k,p[1]/k,c.o]}),own=new Array(w*h);
+ for(let y=0;y<h;y++)for(let x=0;x<w;x++){const px=x*k,py=y*k,wx=(px+9*Math.sin(py*.045+px*.02)+5*Math.sin(py*.11+1)+2.5*Math.sin(py*.29+px*.07))/k,wy=(py+9*Math.sin(px*.04-py*.02)+5*Math.sin(px*.13+2)+2.5*Math.sin(px*.31+py*.05))/k;let b=1e12,o='';for(const p of pts){const e=(p[0]-wx)*(p[0]-wx)+(p[1]-wy)*(p[1]-wy);if(e<b){b=e;o=p[2]}}own[y*w+x]=o}
+ const R={};for(const f in FAC)R[f]=rgbOf(f);
+ for(let y=0;y<h;y++)for(let x=0;x<w;x++){const i=y*w+x,o=own[i],bd=(x<w-1&&own[i+1]!==o)||(y<h-1&&own[i+w]!==o),c=bd?[35,20,8]:R[o],j=i*4;d[j]=c[0];d[j+1]=c[1];d[j+2]=c[2];d[j+3]=bd?235:(o==='FR'?135:95)}
+ g.putImageData(im,0,0)}return TC}
+const DF=[{n:'Facile',gold:900,army:{i:10,c:4,a:4},eg:-1,pd:1.4,ed:.85,inc:1.3,ai:.12},{n:'Normal',gold:700,army:{i:6,c:2,a:2},eg:2,pd:.95,ed:1.35,inc:.85,ai:.4},{n:'Difficile',gold:1000,army:{i:5,c:2,a:1},eg:3,pd:.8,ed:1.7,inc:.65,ai:.65}];let LV=1;
+const O0=CITIES.map(c=>c.o),D0=JSON.stringify(DIP);
+function showMenu(){qRestore();if(B&&B.quick&&G.sv)G.army=G.sv;G.mode='menu';B=null;$('bhud').style.display='none';$('chud').style.display='block';$('resume').style.display=getSave()?'block':'none';$('nc').textContent=getSave()?'⚔ Nouvelle campagne':'⚔ Campagne';$('dfs').innerHTML=DF.map((d,i)=>`<button class="${i===LV?'on':''}" onclick="LV=${i};showMenu()">${d.n}</button>`).join('');$('menu').style.display='flex'}
+function newGame(){const d=DF[LV];Object.assign(FAC,JSON.parse(F0));CITIES.forEach((c,i)=>{c.o=O0[i];c.g=0});Object.assign(DIP,JSON.parse(D0));if(PL!=='FR'){const x=PL;CITIES.forEach(c=>{if(c.o==='FR')c.o=x;else if(c.o===x)c.o='FR'});const t=FAC.FR;FAC.FR=FAC[x];FAC[x]=t;DIP[x]='war'}Object.assign(G,{gen:[],story:null,atk:0,q:[],started:1,gold:d.gold,turn:1,army:{...d.army},sel:null,mode:'camp'});{const cap=CITIES.filter(c=>c.o==='FR').sort((a,b)=>b.s-a.s)[0]||CITIES[0];cam.lo=cap.lo;cam.la=cap.la}cam.z=1.8;tk='';note='';$('menu').style.display='none';$('chud').style.display='block';$('bhud').style.display='none';ui()}
+function quick(){$('menu').style.display='none';G.sv=G.army;G.army={...DF[LV].army};startBattle({n:'Bataille rapide',o:['AU','PR','UK','RU'][Math.random()*4|0],s:2});B.quick=1}
+const RIV=["0.1,49.45 1.1,49.3 1.7,49.05 2.35,48.85 3.3,48.4 4.1,48.3 4.9,47.9","-2.2,47.28 -1.5,47.2 -0.6,47.4 0.7,47.4 1.9,47.9 3.1,47.3 3.5,46.5 4,45.5 4.2,44.9","-1,45.5 -0.6,44.8 0.6,44.2 1.4,43.6 0.9,42.8","4.8,43.4 4.8,44.5 4.8,45.7 5.8,46.2 6.1,46.2","8,47.6 7.6,47.6 7.6,48.5 8.2,49 8.4,49.6 8.6,50.1 7.2,50.7 6.9,51 6.7,51.8 4.5,51.9","8.5,48 10,48.4 11.5,48.8 13.5,48.6 16.4,48.2 19,47.5 19.1,45.9 20.4,44.8 22.5,44.6 25,43.7 27.5,44.2 29.5,45.2","10.2,53.6 11.9,52.5 13.9,51 14.4,50.1","7.1,44.7 8.3,45 10,45 12.3,44.95","-3,51.4 -1.2,51.7 -0.13,51.5 0.8,51.45","30.5,50.4 31,49 32,47.5 31.2,46.6"].map(P2),MTN=["6.8,44.2 6.9,45.2 7.2,46 8.5,46.4 10,46.5 11.5,46.9 13,46.7","-1.6,43.1 -0.5,42.8 0.7,42.7 1.7,42.6 2.8,42.4","19.5,49.4 21,49 23,48.2 24.5,47.4 25.5,46.3 26.2,45.5 25,45.4","2.5,45.3 3,45","7,48.3 7.1,47.9","11.5,44.2 12.5,43","-6,43 -4,43.1 -2.5,42.9","17,44 19,43 21,42.5 22,42","6,60 8,61.5 11,63 14,65 17,67.5","-5,57 -4,57.8","-3.5,37.1 -2.5,37","-6,38.2 -3,38.4","15,50.8 17,50.4","30,37.2 34,37.1 38,37.5"].map(P2),SNOWR=[0,1,8,10,13],SEAS=[["Mer du Nord",3,56.2],["Baltique",17.8,55.6],["Mer Noire",34,43.5],["Adriatique",15.8,43],["Mer Égée",25.3,38.5],["Manche",-1.5,50.2]];
+const BRD=["2.5,51.05 2.9,50.75 3.15,50.75 3.6,50.4 4.2,49.95 4.9,50.1 5.5,49.5 5.8,49.55 6.4,49.5 7.05,49.15 8.2,48.97 8,48.7 7.8,48 7.55,47.6 7,47.5 6.9,47 6.4,46.5 6.1,46.3 6.05,46.2 6.8,45.95 7.05,45.9 6.85,45.45 7,45.15 6.8,44.9 7.05,44.65 7.5,44.15 7.5,43.78","3.15,42.4 2,42.35 1.45,42.6 .7,42.8 0,42.7 -.7,42.85 -1.3,43.05 -1.78,43.4","3.4,51.4 4.2,51.4 4.8,51.45 5.1,51.3 5.7,50.8 6,50.75 6.4,50.3 6.1,49.9 5.8,49.55","7.2,53.25 7.05,52.65 6.85,52.45 6.75,52 6,51.85 6.1,51.2 6,50.75","-8.8,41.95 -8.2,42.1 -7.4,41.85 -6.9,41.95 -6.2,41.55 -6.9,41 -6.85,40.3 -7,39.7 -7.3,39.4 -7.1,38.9 -7.4,38.3 -7.3,37.95 -7.45,37.2","7.05,45.9 7.9,45.95 8.45,46.25 8.95,45.85 9.1,46.1 9.3,46.5 10.1,46.6 10.45,46.55 10.4,46.85 9.55,47.05 9.5,47.5","7.55,47.6 8,47.6 8.6,47.7 9,47.65 9.5,47.55 10.4,47.55 10.9,47.55 12,47.65 13,47.45 13,47.8 12.8,48 13.8,48.75 14.7,48.6 15,49 16,48.8 16.95,48.6 17.1,48.85 17.8,49.4 18.85,49.5 19.5,49.4 20.1,49.2 21.7,49.4 22.55,49.05","10.45,46.55 11.1,46.95 12.2,47.1 12.45,46.7 13.7,46.5 13.65,46 13.6,45.65 14.5,45.5 15.3,45.4 16.5,46.5 17,46 17.6,45.95","13.7,46.5 14.5,46.4 15,46.65 16.1,46.85 16.5,47.7 17.1,48 17.2,48","12.1,50.3 12.4,50.4 13.5,50.55 14.3,50.9 15,51 15,50.85 16,50.6 16.9,50.2 17.7,50.3 18.85,49.5","8.6,54.9 9.4,54.85 10,54.9","14.3,53.9 14.2,53.3 14.55,52.8 14.7,52.1 14.7,51.5 15,51","19.4,54.4 21.5,54.3 22.8,54.4 23.5,54.35 23.5,53.95 23.9,52.7 23.2,52.2 23.5,51.6 24,50.8 24.1,50.3 23,49.8 22.6,49.1 22.1,49.1","21,56.3 22.5,56.4 24,56.2 25.5,56.1 26.6,55.7 28.2,56.15 30.9,55.2 31.9,54 31.8,52.1 34.2,51.3 35.5,50.4 37.9,50.4 39.5,49.8 42,48.5","24.3,57.9 27.3,57.5","31.8,52.1 30,51.5 28.5,51.6 27,51.7 24,51.6","22.9,48.4 24.2,47.9 26.5,48.25 28,48.15 29.2,47.9 30.1,46.45","22.1,49.1 22.55,48.4 22.9,48.4","21,48.4 22,47.6 21.3,46.3 20.3,46.1 19,45.9 18,45.8 17.2,46.3","20.3,46.1 21.4,45.3 22.5,44.65 23,43.85 24.5,43.7 26,43.9 27,44.15 28.6,43.75","19,45.9 19.2,45.2 19.5,44.9 19.3,44 20.3,42.9 20.65,42.35 21.5,42.2 22.4,42.3 23,41.4 24.5,41.5 26,41.35 26.35,41.7 27,42 28,41.95","20.1,39.8 20.5,40.8 21,40.9 22.9,41.35 24.5,41.5","11.1,59.1 12.2,60 12.1,61 12.5,62 14,64 16.5,66 18,68.5 20.6,69.05 21.9,68.5 23.5,67.3 24.15,65.8","28,60.6 29.5,61.5 30.5,63 29.6,64.5 30,66 29,69","-3.05,55 -2.3,55.1 -2,55.65","-3.1,51.45 -2.7,51.8 -3,52.5 -3.15,53 -3,53.35","-8.2,54.45 -7.6,54.1 -6.7,54.05 -6.25,54.1"].map(P2),CNL=[["FRANCE",2.4,46.9],["ESPAGNE",-3.5,40.2],["PORTUGAL",-8,39.8],["ANGLETERRE",-1.2,52.5],["ÉCOSSE",-4.2,56.8],["IRLANDE",-8,53.3],["PAYS-BAS",5.6,52.5],["ALLEMAGNE",10.5,51.3],["POLOGNE",19.5,52],["AUTRICHE",14,47.4],["ITALIE",12.3,43.4],["SUISSE",8.2,46.8],["HONGRIE",19.5,47.1],["ROUMANIE",25,45.8],["BULGARIE",25.5,42.8],["GRÈCE",22,39.3],["TURQUIE",33,39],["UKRAINE",31,49.5],["BIÉLORUSSIE",28,53.5],["RUSSIE",38,57.5],["SUÈDE",15.5,62.5],["NORVÈGE",9,62.5],["FINLANDE",26,64.5],["DANEMARK",9.4,56.2],["BELGIQUE",4.6,50.7]];
+function landPath(){const ar=p=>p.reduce((s,q,i)=>{const n=p[(i+1)%p.length];return s+q[0]*n[1]-n[0]*q[1]},0);X.beginPath();for(const p of EUP.concat([FR,CO])){const v=ar(p)<0?p.slice().reverse():p;v.forEach((q,i)=>{const z=pr(q[0],q[1]);i?X.lineTo(z[0],z[1]):X.moveTo(z[0],z[1])});X.closePath()}}
+const FOR=[[8.2,48.1,.45],[5.2,49.9,.6],[-1,44.3,.9],[2.2,48.2,.35],[7,48.4,.4],[5,49.1,.3],[13.5,49.4,.8],[12.5,48.9,.5],[11,50.8,.6],[22,52.8,1.2],[27,53,1.5],[33,57,1.8],[14,61,1.6],[9,61,.8],[27,63,1.4],[24,47.5,.8],[-4,57,.6],[-1.2,53.1,.3],[-8,42.8,.5],[0,42.8,.4],[21,43.5,.7],[3.5,46.8,.4],[-2.5,48.3,.3],[16,52,.8],[35,52,1.2],[18,60,.5]],LAK=[[6.55,46.45,.4,.1],[9.4,47.6,.25,.08],[10.7,45.65,.08,.25],[17.7,46.85,.45,.07],[8.6,45.95,.06,.25],[-4.5,57.2,.1,.2]],SHP=[[-2.6,50.1],[-7,46],[4,41.5],[3.2,55],[19,56.2],[-9,49],[16,41]];
+const hs=n=>{n=Math.sin(n*127.1+311.7)*43758.5;return n-Math.floor(n)};
+function details(){const z=Math.max(1,cam.z*.7),s0=sc();X.save();landPath();X.clip();X.lineJoin='round';
+ X.strokeStyle='#5b93c9';X.lineWidth=1.3*z;for(const p of RIV){X.beginPath();p.forEach((q,i)=>{const a=pr(q[0],q[1]);i?X.lineTo(a[0],a[1]):X.moveTo(a[0],a[1])});X.stroke()}
+ X.strokeStyle='#6b2f1c';X.lineWidth=1.1+cam.z*.25;X.setLineDash([6,2,1.5,2]);for(const p of BRD){X.beginPath();p.forEach((q,i)=>{const a=pr(q[0],q[1]);i?X.lineTo(a[0],a[1]):X.moveTo(a[0],a[1])});X.stroke()}X.setLineDash([]);
+ X.fillStyle='#6fa3cf';X.strokeStyle='#3d6f9a';X.lineWidth=1;for(const l of LAK){const a=pr(l[0],l[1]);X.beginPath();X.ellipse(a[0],a[1],l[2]*.66*s0,l[3]*s0,0,0,7);X.fill();X.stroke()}
+ const t=1.3+cam.z*.75;
+ FOR.forEach((f,fi)=>{const n=Math.round(f[2]*f[2]*45*Math.min(cam.z,3)+14);for(let pass=0;pass<2;pass++){X.fillStyle=pass?'#4f7d38':'#2d5a2b';X.beginPath();for(let i=pass;i<n;i+=2){const a=hs(fi*97+i*3.1)*6.283,r=Math.sqrt(hs(fi*53+i*7.7))*f[2],q=pr(f[0]+Math.cos(a)*r*1.4,f[1]+Math.sin(a)*r*.9);if(pass){X.moveTo(q[0]+t*.7,q[1]);X.arc(q[0],q[1],t*.7,0,7)}else{X.moveTo(q[0],q[1]-t*1.7);X.lineTo(q[0]-t*.6,q[1]);X.lineTo(q[0]+t*.6,q[1])}}X.fill()}});
+ const pk=[];MTN.forEach((p,mi)=>{const sn=SNOWR.includes(mi);for(let i=0;i<p.length-1;i++){const a=p[i],b=p[i+1],n=Math.max(1,Math.ceil(Math.hypot(b[0]-a[0],b[1]-a[1])/.14));for(let k=0;k<n;k++){const u=k/n,j=mi*1000+i*50+k;pk.push([a[0]+(b[0]-a[0])*u+(hs(j)-.5)*.18,a[1]+(b[1]-a[1])*u+(hs(j+.5)-.5)*.18,.7+hs(j*1.7)*.9,sn])}}});
+ pk.sort((m,n)=>n[1]-m[1]);const w=.9+cam.z*.55;X.lineWidth=.5;
+ for(const m of pk){const q=pr(m[0],m[1]),H=w*2.6*m[2],x=q[0],y=q[1];
+  X.fillStyle='#cdbb86';X.beginPath();X.moveTo(x-w,y);X.lineTo(x,y-H);X.lineTo(x+w*.15,y);X.fill();
+  X.fillStyle='#8a7447';X.beginPath();X.moveTo(x+w*.15,y);X.lineTo(x,y-H);X.lineTo(x+w,y);X.fill();
+  X.strokeStyle='#4a3a1e';X.beginPath();X.moveTo(x-w,y);X.lineTo(x,y-H);X.lineTo(x+w,y);X.stroke();
+  if(m[3]&&m[2]>.95){X.fillStyle='#fff';X.beginPath();X.moveTo(x,y-H);X.lineTo(x-w*.38,y-H*.68);X.lineTo(x-w*.05,y-H*.74);X.lineTo(x+w*.2,y-H*.66);X.lineTo(x+w*.4,y-H*.7);X.fill()}}
+ X.restore();
+ X.fillStyle='#bcd3e0';X.font='italic 11px Georgia';X.textAlign='center';for(const l of SEAS){const a=pr(l[1],l[2]);X.fillText(l[0],a[0],a[1])}
+ if(cam.z<3.4){X.font='bold '+Math.round(Math.max(8,Math.min(20,cam.z*7)))+'px Cinzel,serif';X.fillStyle='rgba(50,30,10,.42)';try{X.letterSpacing='3px'}catch(e){}for(const l of CNL){const a=pr(l[1],l[2]);X.fillText(l[0],a[0],a[1])}try{X.letterSpacing='0px'}catch(e){}}
+ const ts=Date.now()/700;SHP.forEach((sp,i)=>{const a=pr(sp[0],sp[1]),x=a[0],y=a[1]+Math.sin(ts+i)*1.3;X.fillStyle='#4a3320';X.beginPath();X.moveTo(x-6,y);X.lineTo(x+6,y);X.lineTo(x+4,y+3);X.lineTo(x-4,y+3);X.fill();X.fillStyle='#f3ead0';X.beginPath();X.moveTo(x,y-10);X.lineTo(x-4.5,y-1);X.lineTo(x+4.5,y-1);X.fill();X.strokeStyle='#2a1d0e';X.lineWidth=1;X.beginPath();X.moveTo(x,y-10);X.lineTo(x,y);X.stroke()});
+ X.save();X.translate(W-34,86);X.strokeStyle='#d4af37';X.fillStyle='#14110dcc';X.lineWidth=1.5;X.beginPath();X.arc(0,0,22,0,7);X.fill();X.stroke();X.fillStyle='#d4af37';X.beginPath();X.moveTo(0,-19);X.lineTo(5,0);X.lineTo(-5,0);X.fill();X.fillStyle='#8a7447';X.beginPath();X.moveTo(0,19);X.lineTo(5,0);X.lineTo(-5,0);X.fill();X.font='bold 9px Cinzel,serif';X.fillStyle='#fff';X.fillText('N',0,-25);X.restore()}
+const LON0=-11,LON1=43,LAT0=34,LAT1=71,RES=12;let WC=null,wk='';
+function terr2(){const key=CITIES.map(c=>c.o).join('')+PL+FAC.FR[1];
+ if(key!==wk||!WC){wk=key;const w=Math.ceil((LON1-LON0)*.66*RES),h=(LAT1-LAT0)*RES,cv=WC||(WC=document.createElement('canvas'));cv.width=w;cv.height=h;const g=cv.getContext('2d'),im=g.createImageData(w,h),d=im.data,pts=CITIES.map(c=>[c.lo*.66,c.la,c.o]),own=new Array(w*h);
+ for(let y=0;y<h;y++)for(let x=0;x<w;x++){const ux=LON0*.66+x/RES,uy=LAT1-y/RES,wx=ux+.28*Math.sin(uy*2.3+ux*.9)+.15*Math.sin(uy*5.1+1)+.08*Math.sin(uy*11+ux*3)+.04*Math.sin(uy*23+ux*7)+.025*Math.sin(uy*47+ux*13),wy=uy+.28*Math.sin(ux*2.1-uy*.8)+.15*Math.sin(ux*5.3+2)+.08*Math.sin(ux*12+uy*3)+.04*Math.sin(ux*25-uy*5)+.025*Math.sin(ux*51+uy*11);let b=1e12,o='';for(const p of pts){const e=(p[0]-wx)*(p[0]-wx)+(p[1]-wy)*(p[1]-wy);if(e<b){b=e;o=p[2]}}own[y*w+x]=o}
+ const R={};for(const f in FAC)R[f]=rgbOf(f);
+ for(let y=0;y<h;y++)for(let x=0;x<w;x++){const i=y*w+x,o=own[i],bd=(x<w-1&&own[i+1]!==o)||(y<h-1&&own[i+w]!==o)||(x>0&&own[i-1]!==o)||(y>0&&own[i-w]!==o),c=bd?[35,20,8]:R[o],j=i*4;d[j]=c[0];d[j+1]=c[1];d[j+2]=c[2];d[j+3]=bd?235:(o==='FR'?135:95)}
+ g.putImageData(im,0,0)}
+ const a=pr(LON0,LAT1);X.drawImage(WC,a[0],a[1],(LON1-LON0)*.66*sc(),(LAT1-LAT0)*sc())}
+const F0=JSON.stringify(FAC);let PL='FR';
+const AIW=['PR-AU','RU-OT','UK-ES','IT-AU','SE-RU','BE-PR','OT-AU','UK-IT'];
+const areWar=(f,o)=>{if(f===o||f==='FR'||o==='FR')return false;const x=PL!=='FR'?PL:null;if(f===x||o===x){const z=f===x?o:f;return['UK','ES','PR','AU'].includes(z)}return AIW.includes(f+'-'+o)||AIW.includes(o+'-'+f)};
+function endTurn(){G.turn++;G.atk=0;const al=Object.values(DIP).filter(v=>v==='ally').length,fl=CITIES.filter(c=>c.o==='FR').length;const inc=100*fl+30*al;G.gold+=inc;
+ const LG=['💰 Revenus : +'+inc+' or ('+fl+' villes × 100)'];G.q=[];
+ for(const c of CITIES)if(c.o!=='FR'&&Math.random()<.35)c.g=Math.min(3,(c.g||0)+1);
+ for(const f in DIP)if(DIP[f]==='peace'&&Math.random()<.04&&CITIES.some(c=>c.o===f)){DIP[f]='war';LG.push('⚔ '+FAC[f][0]+' vous déclare la guerre !')}
+ for(const f in DIP){const mine=CITIES.filter(c=>c.o===f);if(!mine.length)continue;
+  for(let k=0;k<(mine.length>=10?2:1);k++){const cand=[];for(const a of mine)for(const t of CITIES){if(t.o===f||dd(a,t)>4.5)continue;if(t.o==='FR'?DIP[f]==='war':areWar(f,t.o))cand.push([a,t])}
+   if(!cand.length)continue;cand.sort((m,n)=>(m[1].s+(m[1].g||0))-(n[1].s+(n[1].g||0)));const[a,t]=cand[Math.random()*Math.min(3,cand.length)|0];
+   if(t.o==='FR'){if(!G.story&&Math.random()<DF[LV].ai&&!G.q.some(x=>x.c===t))G.q.push({c:t,f,pw:Math.min(8,a.s+(a.g||0)+DF[LV].eg+1)})}
+   else if(Math.random()<.35){const o=t.o,att=a.s+(a.g||0)+1+Math.random()*2,df=t.s+(t.g||0)+1+Math.random()*2;if(att>df){t.o=f;t.g=0;a.g=Math.max(0,(a.g||0)-1);LG.push('🏴 '+FAC[f][0]+' prend '+t.n+' à '+FAC[o][0])}}}}
+ ui();if(LG.length)msg('Rapport du tour '+G.turn,LG.slice(0,8).join('\n')+(LG.length>8?'\n…':''),nextDef);else nextDef()}
+function preDef(q){const a=G.army,full=TOT(a)>=20,b=(k,n,c)=>`<button class="g" ${G.gold<c||full?'disabled':''} onclick="rec('${k}',${c})">+${n} ${c}</button>`;
+ $('dip').firstElementChild.innerHTML=`<h2>⚔ Attaque ennemie !</h2><p style="font-size:13px">${FAC[q.f][0]} attaque <b>${q.c.n}</b>.<br>Rechargez vos unités avant la bataille.</p><p>Armée : <b>${a.i}</b> inf · <b>${a.c}</b> cav · <b>${a.a}</b> canons<br>Or : <b>${G.gold}</b></p><div class="row">${b('i','Inf',80)}${b('c','Cav',120)}${b('a','Canon',160)}</div><br><button onclick="defGo()">⚔ Défendre</button>`;G.cq=q;$('dip').style.display='flex'}
+function rec(k,c){G.gold-=c;G.army[k]++;ui();preDef(G.cq)}
+function defGo(){const q=G.cq;closeDip();G.pf=q.f;G.df=1;G.pw=q.pw;startBattle(q.c)}
+function nextDef(){ui();if(!CITIES.some(c=>c.o==='FR'))return msg('Empire effondré','Vous avez perdu toutes vos villes.',()=>{G.started=0;showMenu()});
+ const q=G.q&&G.q.shift();if(!q)return;if(q.c.o!=='FR')return nextDef();
+ preDef(q)}
+function pick(){$('menu').style.display='none';const F=JSON.parse(F0);let h='<h2>Choisissez votre nation</h2><p style="font-size:11px;opacity:.8">Vous commencez avec les villes de cette nation.</p>';for(const f in F){const n=O0.filter(o=>o===f).length;h+=`<div class="fr"><span><i style="background:${F[f][1]}"></i><b>${F[f][0]}</b> · ${n} villes</span><button class="b" onclick="go('${f}')">Jouer</button></div>`}h+='<button class="g" onclick="closeDip();showMenu()">Retour</button>';$('dip').firstElementChild.innerHTML=h;$('dip').style.display='flex'}
+let SV=null;
+const getSave=()=>{try{return localStorage.getItem('napo_save')||SV}catch(e){return SV}};
+function saveGame(){const s=JSON.stringify({G:{gold:G.gold,turn:G.turn,army:G.army,atk:G.atk,story:G.story,gen:G.gen},o:CITIES.map(c=>c.o),g:CITIES.map(c=>c.g||0),dip:DIP,PL,LV,fac:FAC,cam});SV=s;try{localStorage.setItem('napo_save',s)}catch(e){}}
+function loadGame(){const s=getSave();if(!s)return;const d=JSON.parse(s);PL=d.PL;LV=d.LV;Object.assign(FAC,d.fac);CITIES.forEach((c,i)=>{c.o=d.o[i];c.g=d.g[i]});Object.assign(DIP,d.dip);Object.assign(G,d.G,{sel:null,mode:'camp',started:1,q:[],story:d.G.story||null,gen:d.G.gen||[]});Object.assign(cam,d.cam);tk='';$('menu').style.display='none';$('chud').style.display='block';$('bhud').style.display='none';ui()}
+function leave(){if(!G.started||G.mode==='menu'||(B&&B.q2))return showMenu();$('dip').firstElementChild.innerHTML='<h2>Quitter la campagne</h2><p>Sauvegarder avant de quitter ?</p><div class="row"><button class="b" onclick="sv(1)">Oui</button><button onclick="sv(0)">Non</button><button class="g" onclick="closeDip()">Annuler</button></div>';$('dip').style.display='flex'}
+function sv(y){closeDip();if(y)saveGame();showMenu()}
+let CN='';
+const CH=[{t:'Brumaire',x:'1799. Le Consulat est fragile et la Prusse menace le Nord. Frappez la première : prenez Lille.',o:'Lille',w:['PR'],r:300,e:'Le Nord est sécurisé. Votre renommée grandit.'},
+{t:'Marengo',x:'1800. L’Italie est la clé de l’Europe. Franchissez les Alpes et prenez Milan.',o:'Milan',w:['IT'],r:400,e:'L’Italie est à vous ! Les soldats vous acclament.'},
+{t:'Austerlitz',x:'1805. L’Autriche et la Russie se dressent contre vous. Marchez sur Vienne.',o:'Vienne',w:['AU'],r:500,e:'Austerlitz, votre plus grande victoire !'},
+{t:'Iéna',x:'1806. La Prusse vous a défié. Écrasez-la : prenez Berlin.',o:'Berlin',w:['PR'],r:500,e:'Berlin tombe en quelques semaines.'},
+{t:'Guerre d’Espagne',x:'1808. L’Espagne résiste et l’Angleterre la soutient. Prenez Madrid.',o:'Madrid',w:['ES'],r:600,e:'Madrid est prise, mais la guérilla continue...'},
+{t:'Campagne de Russie',x:'1812. Le tsar défie votre blocus. Marchez sur Moscou avant l’hiver !',o:'Moscou',w:['RU'],r:700,e:'Moscou est prise, mais l’hiver approche...'},
+{t:'Waterloo',x:'1815. Les Cent-Jours. L’Europe se coalise une dernière fois. Prenez Bruxelles.',o:'Bruxelles',w:['BE'],r:1000,e:'Waterloo est à vous. L’Empire est sauvé !'}];
+function startChapter(){const s=G.story,c=CH[s.ch];s.obj=c.o;for(const f of c.w)DIP[f]='war';const t=CITIES.find(x=>x.n===c.o);if(t){cam.lo=t.lo;cam.la=t.la;G.sel=t}ui();msg('Chapitre '+(s.ch+1)+' — '+c.t,c.x+'\n\n🎯 Objectif : prendre '+c.o+'.')}
+function storyChk(n){if(!G.story||n!==G.story.obj)return;const s=G.story,c=CH[s.ch];G.gold+=c.r;s.ch++;ui();if(s.ch>=CH.length){G.story=null;return msg('Vive l’Empereur !',c.e+'\n\nVotre légende est écrite. Fin du mode histoire.',()=>{G.started=0;showMenu()})}msg('Chapitre accompli',c.e+'\n+'+c.r+' or',startChapter)}
+function story(){PL='FR';newGame();G.story={ch:0,obj:''};startChapter()}
+const GEN=[{id:'murat',n:'Murat',c:1000,d:'Cavalerie : dégâts +40 %, vitesse +20 %',e:['c',1.4,1,1.2]},
+{id:'davout',n:'Davout',c:1200,d:'Infanterie : vie +35 %',e:['i',1,1.35,1]},
+{id:'ney',n:'Ney',c:1400,d:'Infanterie : dégâts +35 %',e:['i',1.35,1,1]},
+{id:'lannes',n:'Lannes',c:1500,d:'Toutes les unités : dégâts +20 %, vitesse +10 %',e:['*',1.2,1,1.1]},
+{id:'drouot',n:'Drouot',c:1700,d:'Artillerie : dégâts +60 %, vie +30 %',e:['a',1.6,1.3,1]},
+{id:'berthier',n:'Berthier',c:1800,d:'Toutes les unités : vie +25 %',e:['*',1,1.25,1]},
+{id:'soult',n:'Soult',c:2000,d:'Toutes les unités : dégâts +25 %, vie +25 %',e:['*',1.25,1.25,1]}];
+const gmul=t=>{let d=1,h=1,s=1;for(const g of GEN)if((G.gen||[]).includes(g.id)&&(g.e[0]==='*'||g.e[0]===t)){d*=g.e[1];h*=g.e[2];s*=g.e[3]}return{d,h,s}};
+function gens(){const hv=G.gen||[];let h='<h2>⭐ Généraux</h2><p style="font-size:11px;opacity:.8">Or : <b>'+G.gold+'</b> · ils renforcent vos troupes à chaque bataille.</p>';for(const g of GEN){const own=hv.includes(g.id);h+=`<div class="fr"><span><b>${g.n}</b><br><small>${g.d}</small></span>`+(own?'<span>✓ Engagé</span>':`<button class="b" ${G.gold<g.c?'disabled':''} onclick="hire('${g.id}')">${g.c}</button>`)+'</div>'}h+='<button class="g" onclick="closeDip()">Fermer</button>';$('dip').firstElementChild.innerHTML=h;$('dip').style.display='flex'}
+function hire(id){const g=GEN.find(x=>x.id===id);if(!g||G.gold<g.c)return;G.gold-=g.c;(G.gen=G.gen||[]).push(id);ui();gens()}
+let QL=1;
+const getBest=()=>{try{return localStorage.getItem('napo_best')}catch(e){return null}},setBest=v=>{try{localStorage.setItem('napo_best',v)}catch(e){}};
+function qStart(){QL=1;G.sv=G.sv||G.army;G.sgen=G.sgen||G.gen||[];G.gen=[];qPrep()}
+function qPrep(){$('menu').style.display='none';G.qa={i:0,c:0,a:0};G.qg=700+350*(QL-1);qUI()}
+function qUI(){const a=G.qa,full=TOT(a)>=20,b=(k,n,c)=>`<button class="g" ${G.qg<c||full?'disabled':''} onclick="qrec('${k}',${c})">+${n} ${c}</button>`;
+ $('dip').firstElementChild.innerHTML=`<h2>Niveau ${QL}</h2><p style="font-size:13px">Composez votre armée avant la bataille.<br>Or : <b>${G.qg}</b><br>Armée : <b>${a.i}</b> inf · <b>${a.c}</b> cav · <b>${a.a}</b> canons</p><div class="row">${b('i','Inf',80)}${b('c','Cav',120)}${b('a','Canon',160)}</div><br><div class="row"><button ${TOT(a)?'':'disabled'} onclick="qgo()">⚔ Combattre</button><button class="g" onclick="qexit()">Quitter</button></div><p style="font-size:11px;opacity:.7">Meilleur niveau : ${getBest()||0}</p>`;$('dip').style.display='flex'}
+function qrec(k,c){G.qg-=c;G.qa[k]++;qUI()}
+function qgo(){closeDip();G.army={...G.qa};G.pf=null;G.df=0;G.qm=1;G.pw=Math.min(8,Math.max(0,QL+Math.floor(DF[LV].eg/2)));startBattle({n:'Bataille rapide',o:['AU','PR','UK','RU'][Math.random()*4|0],s:2});B.q2=1}
+function qexit(){closeDip();showMenu()}
+function qRestore(){if(G.sv){G.army=G.sv;G.sv=null}if(G.sgen){G.gen=G.sgen;G.sgen=null}G.qm=0}
+let NX=null;
+function askLV(f){$('menu').style.display='none';NX=f;$('dip').firstElementChild.innerHTML='<h2>Difficulté</h2>'+DF.map((d,i)=>`<button class="${i===LV?'on':''}" style="display:block;width:100%;margin:6px 0" onclick="LV=${i};closeDip();NX()">${d.n}</button>`).join('')+'<button class="g" style="margin-top:6px" onclick="closeDip();showMenu()">Retour</button>';$('dip').style.display='flex'}
+function go(f){PL=f;closeDip();newGame()}
+function resume(){loadGame()}
+$('bz1').onclick=()=>{bz.z=Math.min(5,bz.z*1.3)};$('bz2').onclick=()=>{bz.z=Math.max(.6,bz.z/1.3)};$('bpm').onclick=()=>{G.pm=!G.pm;$('bpm').classList.toggle('on',!!G.pm)};$('bfit').onclick=()=>{bz.z=1;bz.x=BW/2;bz.y=BH/2};
+C.addEventListener('wheel',e=>{if(G.mode==='battle')bz.z=Math.max(.6,Math.min(5,bz.z*(e.deltaY<0?1.15:.87)))});
+FOR.length=0;MTN.length=0;LAK.length=0;
+function fr(p,d,a,cl){let q=p;for(let k=0;k<d;k++){const r=[],n=cl?q.length:q.length-1;for(let i=0;i<n;i++){const A=q[i],B=q[(i+1)%q.length],dx=B[0]-A[0],dy=B[1]-A[1],L=Math.hypot(dx,dy)||1,m=Math.min(L,.9)*a*(hs(A[0]*13.7+A[1]*7.3+B[0]*5.1+B[1]*3.3+k)-.5)*2;r.push(A,[(A[0]+B[0])/2-dy/L*m,(A[1]+B[1])/2+dx/L*m])}if(!cl)r.push(q[q.length-1]);q=r}return q}
+const rep=(a,d,m,cl)=>{for(let i=0;i<a.length;i++)a[i]=fr(a[i],d,m,cl)};
+rep(EUP,3,.3,1);FR.splice(0,FR.length,...fr(FR,3,.28,1));CO.splice(0,CO.length,...fr(CO,3,.3,1));rep(BRD,3,.3,0);rep(RIV,2,.25,0);
+ui();requestAnimationFrame(loop);showMenu();
+const help=()=>msg('Comment jouer','Conquérez les villes ennemies, puis conquérez ou alliez-vous avec toute l’Europe (🏛 Diplomatie ; glissez pour déplacer la carte, ＋/－ pour zoomer).'+' Sur la carte : touchez une ville ennemie rouge puis « Attaquer ». En bataille : touchez une unité, puis un endroit pour bouger, ou un ennemi pour l’attaquer. « Combat / Assaut » lance la charge.');
+</script></body></html>
